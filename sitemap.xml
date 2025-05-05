@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://kivooeo.github.com/</loc>
+        <loc>https://kivooeo.github.io/</loc>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/about/</loc>
+        <loc>https://kivooeo.github.io/about/</loc>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/categories/</loc>
+        <loc>https://kivooeo.github.io/categories/</loc>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/contexts/</loc>
+        <loc>https://kivooeo.github.io/contexts/</loc>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/dynamic-linking-in-rustc/</loc>
+        <loc>https://kivooeo.github.io/dynamic-linking-in-rustc/</loc>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/overview-post/</loc>
+        <loc>https://kivooeo.github.io/overview-post/</loc>
         <lastmod>2020-07-07</lastmod>
     </url>
     <url>
-        <loc>https://kivooeo.github.com/tags/</loc>
+        <loc>https://kivooeo.github.io/tags/</loc>
     </url>
 </urlset>
