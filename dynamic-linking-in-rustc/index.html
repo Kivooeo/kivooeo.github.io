@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
+        <meta content="width=device-width, initial-scale=1" name="viewport"/>
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <title>Dynamic Linking in Rust might be a thing!</title>
+        
+        <meta name="title" content="Dynamic Linking in Rust might be a thing!">
+        <meta name="author" content="Kivooeo">
+        <meta name="description" content="this my blog that never ever existed.">
+        <meta name="generator" content="Zola v0.16.1">
+
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://kivooeo.github.com/dynamic-linking-in-rustc/">
+        <meta property="og:site_name" content="none blog!">
+        <meta property="og:title" content="Dynamic Linking in Rust might be a thing!">
+        <meta property="og:description" content="this my blog that never ever existed.">
+        <meta property="og:image" content="https:&#x2F;&#x2F;kivooeo.github.com&#x2F;images&#x2F;logo.png">
+
+        
+        
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="https://kivooeo.github.com/dynamic-linking-in-rustc/">
+        <meta property="twitter:title" content="Dynamic Linking in Rust might be a thing!">
+        <meta property="twitter:description" content="this my blog that never ever existed.">
+        <meta property="twitter:image" content="https:&#x2F;&#x2F;kivooeo.github.com&#x2F;images&#x2F;logo.png">
+        
+        
+        <link rel="canonical" href="https://kivooeo.github.com/dynamic-linking-in-rustc/">
+        <link rel="shortcut icon" type="image/x-icon" href="https://kivooeo.github.com/images/logo.png">
+        <script type="application/ld+json">
+            {
+                "description":"this my blog that never ever existed.",
+                "url":"https://kivooeo.github.com/dynamic-linking-in-rustc/",
+                "@type":"WebSite",
+                "headline":"Dynamic Linking in Rust might be a thing!",
+                "name":"Dynamic Linking in Rust might be a thing!",
+                "author":{
+                    "@type":"Person",
+                    "name":"Kivooeo"
+                },
+                "@context":"https://schema.org"
+            }
+        </script>
+        
+        
+        
+        <link rel="alternate" type="application/atom+xml" title="RSS" href="https://kivooeo.github.com/atom.xml">
+        
+        
+        
+        <link rel="stylesheet" href="https://kivooeo.github.com/style.css"/>
+        
+    </head>
+    <body theme="auto">
+        <div class="w">
+            <header>
+                
+                <nav>
+                    
+                    <a href="/" >~home</a>
+                    
+                </nav>
+                
+                
+<p><a href="..">..</a>/dynamic-linking-in-rustc</p>
+<p class="post-meta"><time datetime=""></time></p>
+<h1>Dynamic Linking in Rust might be a thing!</h1>
+
+            </header>
+            <main class="page-content" aria-label="Content">
+                
+
+
+
+<h2 id="overview">Overview</h2>
+<p>Rust’s <code>--prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability.</p>
+<hr />
+<h3 id="how-it-works">How It Works</h3>
+<ul>
+<li>
+<p><strong>Static vs. Dynamic</strong>:<br />
+Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>std</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
+</li>
+<li>
+<p><strong>Usage</strong>:<br />
+Pass the flag to <code>rustc</code> directly or via Cargo:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">rustc --prefer-dynamic</span><span> main.rs
+</span></code></pre>
+<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>std</code>). Some crates still link statically.</p>
+</li>
+</ul>
+<hr />
+<h3 id="when-to-use">When to Use</h3>
+<ol>
+<li><strong>Smaller Binaries</strong>:<br />
+Reduces size from MBs to KBs for tools/plugins.</li>
+<li><strong>Shared Systems</strong>:<br />
+Multiple Rust apps on one system share a single <code>std</code> in memory.</li>
+<li><strong>Plugins/Mods</strong>:<br />
+Facilitates lightweight, reloadable modules.</li>
+</ol>
+<hr />
+<h3 id="caveats">Caveats</h3>
+<ul>
+<li><strong>Dependency Requirements</strong>: Target systems must have the exact library versions (e.g., <code>libstd-*.so</code>).</li>
+<li><strong>Limited Compatibility</strong>: Many crates lack dynamic versions.</li>
+<li><strong>Version Mismatches</strong>: Risk of crashes if library versions differ between build and target systems.</li>
+<li><strong>Minor Overhead</strong>: Runtime library loading adds negligible latency.</li>
+</ul>
+<hr />
+<h3 id="example">Example</h3>
+<p>Let's build this basic code for start with just static linking</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {
+</span><span>    println!(&quot;</span><span style="color:#a3be8c;">Nothing here!</span><span>&quot;)
+</span><span>}
+</span></code></pre>
+<p>so we run <code>cargo build --release</code> here and see this</p>
+<p><code>-a----          5/6/2025   2:50 AM         134144 f</code></p>
+<p>then, to tell cargo run <code>prefer-dynamic</code> as argument, we should write</p>
+<pre data-lang="toml" style="background-color:#2b303b;color:#c0c5ce;" class="language-toml "><code class="language-toml" data-lang="toml"><span>[build]
+</span><span style="color:#bf616a;">rustflags </span><span>= [&quot;</span><span style="color:#a3be8c;">-C</span><span>&quot;, &quot;</span><span style="color:#a3be8c;">prefer-dynamic</span><span>&quot;]
+</span></code></pre>
+<p>in <code>~/.cargo/config.toml</code>, and now... we can recompile this to watch results
+running <code>cargo build --release</code> once again and see</p>
+<p><code>-a----          5/6/2025   2:55 AM          10240 f</code></p>
+<p>it's way better, agree?</p>
+<hr />
+<h3 id="when-to-avoid">When to Avoid</h3>
+<ul>
+<li><strong>Portable Apps</strong>: Static linking ensures no external dependencies.</li>
+<li><strong>Uncontrolled Environments</strong>: Avoid dependency issues on user machines.</li>
+<li><strong>Performance-Critical Code</strong>: Static binaries eliminate runtime linking overhead.</li>
+<li><strong>LTO</strong>: It's just not works when LTO enabled.</li>
+</ul>
+
+
+            </main>
+            <footer>
+                
+<p class="taxonomies">
+
+</p>
+
+                
+            </footer>
+        </div>
+    </body>
+</html>
+        
