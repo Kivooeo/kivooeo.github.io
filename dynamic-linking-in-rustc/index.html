@@ -103,14 +103,14 @@
 <ul>
 <li>
 <p><strong>Static vs. Dynamic</strong>:<br />
-Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>std</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
+Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>libstd</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
 </li>
 <li>
 <p><strong>Usage</strong>:<br />
 Pass the flag to <code>rustc</code> directly or via Cargo:</p>
 <pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">rustc --prefer-dynamic</span><span> main.rs
 </span></code></pre>
-<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>std</code>). Some crates still link statically.</p>
+<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>libstd</code>). Some crates still link statically.</p>
 </li>
 </ul>
 <hr />
@@ -119,7 +119,7 @@ Pass the flag to <code>rustc</code> directly or via Cargo:</p>
 <li><strong>Smaller Binaries</strong>:<br />
 Reduces size from MBs to KBs for tools/plugins.</li>
 <li><strong>Shared Systems</strong>:<br />
-Multiple Rust apps on one system share a single <code>std</code> in memory.</li>
+Multiple Rust apps on one system share a single <code>libstd</code> in memory.</li>
 <li><strong>Plugins/Mods</strong>:<br />
 Facilitates lightweight, reloadable modules.</li>
 </ol>
