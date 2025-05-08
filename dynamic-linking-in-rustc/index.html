@@ -156,6 +156,9 @@ running <code>cargo build --release</code> once again and see</p>
 <p>this problem occurs because our binary can't find a .so stdlib files in <code>LD_LIBRARY_PATH</code>, so to fix it, we have to manually setup this, on linux you can do something like this</p>
 <pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#b48ead;">export </span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span>=$</span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span style="color:#a3be8c;">:</span><span style="color:#bf616a;">~</span><span style="color:#a3be8c;">/.rustup/toolchains/</span><span>&lt;toolchain&gt;/lib/rustlib/&lt;toolchain&gt;/lib/
 </span></code></pre>
+<p>or for windows you should use this</p>
+<pre data-lang="powershell" style="background-color:#2b303b;color:#c0c5ce;" class="language-powershell "><code class="language-powershell" data-lang="powershell"><span>$</span><span style="color:#bf616a;">env:Path </span><span>= &quot;$</span><span style="color:#bf616a;">env:Path</span><span style="color:#a3be8c;">;</span><span>$</span><span style="color:#bf616a;">env:USERPROFILE</span><span style="color:#a3be8c;">\.rustup\toolchains\&lt;toolchain&gt;\lib\rustlib\&lt;toolchain&gt;\lib</span><span>&quot;
+</span></code></pre>
 <p>this directory will contain all .so (or .rlib or .dll im not sure what windows version uses) files that you need to run the programm correctly, after adding a path to our library we can finally and most likely succesfully run our binary</p>
 <pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>$  ~ ./main  
 </span><span>Hello, world!
