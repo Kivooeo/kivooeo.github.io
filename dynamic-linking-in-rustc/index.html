@@ -135,7 +135,7 @@ Facilitates lightweight, reloadable modules.</li>
 <h3 id="example">Example</h3>
 <p>Let's build this basic code for start with just static linking</p>
 <pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {
-</span><span>    println!(&quot;</span><span style="color:#a3be8c;">Nothing here!</span><span>&quot;)
+</span><span>    println!(&quot;</span><span style="color:#a3be8c;">Hello, world</span><span>&quot;);
 </span><span>}
 </span></code></pre>
 <p>so we run <code>cargo build --release</code> here and see this</p>
@@ -156,8 +156,13 @@ running <code>cargo build --release</code> once again and see</p>
 <p>this problem occurs because our binary can't find a .so stdlib files in <code>LD_LIBRARY_PATH</code>, so to fix it, we have to manually setup this, on linux you can do something like this</p>
 <pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#b48ead;">export </span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span>=$</span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span style="color:#a3be8c;">:</span><span style="color:#bf616a;">~</span><span style="color:#a3be8c;">/.rustup/toolchains/</span><span>&lt;toolchain&gt;/lib/rustlib/&lt;toolchain&gt;/lib/
 </span></code></pre>
-<p>this directory will contain all .so (or .rlib or .dll im not sure what windows version uses) files that you need to run the programm correctly,</p>
-<hr />
+<p>this directory will contain all .so (or .rlib or .dll im not sure what windows version uses) files that you need to run the programm correctly, after adding a path to our library we can finally and most likely succesfully run our binary</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>$  ~ ./main  
+</span><span>Hello, world!
+</span><span>$  ~ ls -ls main   
+</span><span>20 -rwxr-xr-x 1 coder coder 17064 May  8 07:49 main
+</span></code></pre>
+<h2 id="moi-kotik"><img src="/images/cat.gif" alt="Мой котик" /></h2>
 <h3 id="when-to-avoid">When to Avoid</h3>
 <ul>
 <li><strong>Portable Apps</strong>: Static linking ensures no external dependencies.</li>
