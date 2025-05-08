@@ -97,39 +97,40 @@
 
 
 <h2 id="overview">Overview</h2>
-<p>Rust’s <code>prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability.</p>
+<p>Rust’s <code>prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability</p>
 <hr />
 <h3 id="how-it-works">How It Works</h3>
 <ul>
 <li>
 <p><strong>Static vs. Dynamic</strong>:<br />
-Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>std</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
+Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>libstd</code>) at runtime, reducing binary size but requiring those libraries on the target system</p>
 </li>
 <li>
 <p><strong>Usage</strong>:<br />
-Pass the flag to <code>rustc</code> directly or via Cargo:</p>
+Pass the flag to <code>rustc</code> directly:</p>
 <pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>rustc -C prefer-dynamic main.rs
 </span></code></pre>
-<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>std</code>). Some crates still link statically.</p>
+<p>or via Cargo (example will be below)</p>
+<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>libstd</code>). Some crates still link statically</p>
 </li>
 </ul>
 <hr />
-<h3 id="when-to-use">When to Use</h3>
+<h3 id="pros">Pros</h3>
 <ol>
 <li><strong>Smaller Binaries</strong>:<br />
 Reduces size from MBs to KBs for tools/plugins.</li>
 <li><strong>Shared Systems</strong>:<br />
-Multiple Rust apps on one system share a single <code>std</code> in memory.</li>
+Multiple Rust apps on one system share a single <code>libstd</code> in memory</li>
 <li><strong>Plugins/Mods</strong>:<br />
-Facilitates lightweight, reloadable modules.</li>
+Facilitates lightweight, reloadable modules</li>
 </ol>
 <hr />
-<h3 id="caveats">Caveats</h3>
+<h3 id="cons">Cons</h3>
 <ul>
-<li><strong>Dependency Requirements</strong>: Target systems must have the exact library versions (e.g., <code>libstd-*.so</code>).</li>
-<li><strong>Limited Compatibility</strong>: Many crates lack dynamic versions.</li>
-<li><strong>Version Mismatches</strong>: Risk of crashes if library versions differ between build and target systems.</li>
-<li><strong>Minor Overhead</strong>: Runtime library loading adds negligible latency.</li>
+<li><strong>Dependency Requirements</strong>: Target systems must have the exact library versions (e.g., <code>libstd-*.so</code>)</li>
+<li><strong>Limited Compatibility</strong>: Many crates lack dynamic versions</li>
+<li><strong>Version Mismatches</strong>: Risk of crashes if library versions differ between build and target systems</li>
+<li><strong>Minor Overhead</strong>: Runtime library loading adds negligible latency</li>
 </ul>
 <hr />
 <h3 id="example">Example</h3>
@@ -168,10 +169,10 @@ running <code>cargo build --release</code> once again and see</p>
 <h2 id="moi-kotik"><img src="/images/cat.gif" alt="Мой котик" /></h2>
 <h3 id="when-to-avoid">When to Avoid</h3>
 <ul>
-<li><strong>Portable Apps</strong>: Static linking ensures no external dependencies.</li>
-<li><strong>Uncontrolled Environments</strong>: Avoid dependency issues on user machines.</li>
-<li><strong>Performance-Critical Code</strong>: Static binaries eliminate runtime linking overhead.</li>
-<li><strong>LTO</strong>: It's just not works when LTO enabled.</li>
+<li><strong>Portable Apps</strong>: Static linking ensures no external dependencies</li>
+<li><strong>Uncontrolled Environments</strong>: Avoid dependency issues on user machines</li>
+<li><strong>Performance-Critical Code</strong>: Static binaries eliminate runtime linking overhead</li>
+<li><strong>LTO</strong>: It's just not works when LTO enabled</li>
 </ul>
 
 
