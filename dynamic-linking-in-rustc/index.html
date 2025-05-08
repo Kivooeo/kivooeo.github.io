@@ -97,20 +97,20 @@
 
 
 <h2 id="overview">Overview</h2>
-<p>Rust’s <code>--prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability.</p>
+<p>Rust’s <code>prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability.</p>
 <hr />
 <h3 id="how-it-works">How It Works</h3>
 <ul>
 <li>
 <p><strong>Static vs. Dynamic</strong>:<br />
-Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>libstd</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
+Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>std</code>) at runtime, reducing binary size but requiring those libraries on the target system.</p>
 </li>
 <li>
 <p><strong>Usage</strong>:<br />
 Pass the flag to <code>rustc</code> directly or via Cargo:</p>
-<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">rustc --prefer-dynamic</span><span> main.rs
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>rustc -C prefer-dynamic main.rs
 </span></code></pre>
-<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>libstd</code>). Some crates still link statically.</p>
+<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>std</code>). Some crates still link statically.</p>
 </li>
 </ul>
 <hr />
@@ -119,7 +119,7 @@ Pass the flag to <code>rustc</code> directly or via Cargo:</p>
 <li><strong>Smaller Binaries</strong>:<br />
 Reduces size from MBs to KBs for tools/plugins.</li>
 <li><strong>Shared Systems</strong>:<br />
-Multiple Rust apps on one system share a single <code>libstd</code> in memory.</li>
+Multiple Rust apps on one system share a single <code>std</code> in memory.</li>
 <li><strong>Plugins/Mods</strong>:<br />
 Facilitates lightweight, reloadable modules.</li>
 </ol>
@@ -148,6 +148,15 @@ Facilitates lightweight, reloadable modules.</li>
 running <code>cargo build --release</code> once again and see</p>
 <p><code>-a----          5/6/2025   2:55 AM          10240 f</code></p>
 <p>it's way better, agree?</p>
+<h3 id="problems-you-may-face">Problems you may face</h3>
+<p>so just right after compiling this thing and trying to run it, you likely we'll see something like this</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>$ ./main
+</span><span>./main: error while loading shared libraries: libstd-f6265b21db1f990f.so: cannot open shared object file: No such file or directory
+</span></code></pre>
+<p>this problem occurs because our binary can't find a .so stdlib files in <code>LD_LIBRARY_PATH</code>, so to fix it, we have to manually setup this, on linux you can do something like this</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#b48ead;">export </span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span>=$</span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span style="color:#a3be8c;">:</span><span style="color:#bf616a;">~</span><span style="color:#a3be8c;">/.rustup/toolchains/</span><span>&lt;toolchain&gt;/lib/rustlib/&lt;toolchain&gt;/lib/
+</span></code></pre>
+<p>this directory will contain all .so (or .rlib or .dll im not sure what windows version uses) files that you need to run the programm correctly,</p>
 <hr />
 <h3 id="when-to-avoid">When to Avoid</h3>
 <ul>
