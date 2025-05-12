@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
+        <meta content="width=device-width, initial-scale=1" name="viewport"/>
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <title>if let guard in-depth review</title>
+        
+        <meta name="title" content="if let guard in-depth review">
+        <meta name="author" content="Kivooeo">
+        <meta name="description" content="this my blog that never ever existed.">
+        <meta name="generator" content="Zola v0.16.1">
+
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://kivooeo.github.io/if-let-guard-feature/">
+        <meta property="og:site_name" content="none blog!">
+        <meta property="og:title" content="if let guard in-depth review">
+        <meta property="og:description" content="this my blog that never ever existed.">
+        <meta property="og:image" content="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;images&#x2F;logo.png">
+
+        
+        
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="https://kivooeo.github.io/if-let-guard-feature/">
+        <meta property="twitter:title" content="if let guard in-depth review">
+        <meta property="twitter:description" content="this my blog that never ever existed.">
+        <meta property="twitter:image" content="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;images&#x2F;logo.png">
+        
+        
+        <link rel="canonical" href="https://kivooeo.github.io/if-let-guard-feature/">
+        <link rel="shortcut icon" type="image/x-icon" href="https://kivooeo.github.io/images/logo.png">
+        <script type="application/ld+json">
+            {
+                "description":"this my blog that never ever existed.",
+                "url":"https://kivooeo.github.io/if-let-guard-feature/",
+                "@type":"WebSite",
+                "headline":"if let guard in-depth review",
+                "name":"if let guard in-depth review",
+                "author":{
+                    "@type":"Person",
+                    "name":"Kivooeo"
+                },
+                "@context":"https://schema.org"
+            }
+        </script>
+        
+        
+        
+        <link rel="alternate" type="application/atom+xml" title="RSS" href="https://kivooeo.github.io/atom.xml">
+        
+        
+        
+        <link rel="stylesheet" href="https://kivooeo.github.io/style.css"/>
+        
+    </head>
+    <body theme="auto">
+        <div class="w">
+            <header>
+                
+                <nav>
+                    
+                    <a href="/" >~home</a>
+                    
+                </nav>
+                
+                
+<p><a href="..">..</a>/if-let-guard-feature</p>
+<p class="post-meta"><time datetime=""></time></p>
+<h1>if let guard in-depth review</h1>
+
+            </header>
+            <main class="page-content" aria-label="Content">
+                
+
+
+
+<p>Rust’s <em><code>if let</code> guards</em> feature allows match arms to include an <code>if let</code> condition, enabling a pattern match and a conditional check
+in one guard.  In other words, a match arm can be written as:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match</span><span> value {
+</span><span>    </span><span style="color:#d08770;">PATTERN </span><span style="color:#b48ead;">if let </span><span style="color:#d08770;">GUARD_PAT </span><span>= </span><span style="color:#d08770;">GUARD_EXPR </span><span>=&gt; { </span><span style="color:#65737e;">/* body */ </span><span>},
+</span><span>    _ =&gt; { </span><span style="color:#65737e;">/* fallback */ </span><span>},
+</span><span>}
+</span></code></pre>
+<p>This arm is selected <strong>only if</strong> <code>value</code> matches <code>PATTERN</code> <em>and</em> additionally <code>GUARD_EXPR</code> matches <code>GUARD_PAT</code>.  Crucially, the
+variables bound by <code>PATTERN</code> are in scope when evaluating <code>GUARD_EXPR</code>, and the variables bound by both patterns
+(<code>PATTERN</code> and <code>GUARD_PAT</code>) are in scope in the arm’s body.  For example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match</span><span> foo {
+</span><span>    Some(x) </span><span style="color:#b48ead;">if let </span><span>Ok(y) = </span><span style="color:#96b5b4;">compute</span><span>(x) =&gt; {
+</span><span>        </span><span style="color:#65737e;">// `x` from `Some(x)` and `y` from `Ok(y)` are both available here
+</span><span>        println!(&quot;</span><span style="color:#d08770;">{}</span><span style="color:#a3be8c;">, </span><span style="color:#d08770;">{}</span><span>&quot;, x, y);
+</span><span>    }
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>As the original RFC explains, the semantics are that the guard is chosen <em>if</em> the main pattern matches and the let-pattern
+in the guard also matches.  (Per design, a match arm may have <em>either</em> a normal <code>if</code> guard or an <code>if let</code> guard, but not both simultaneously.)</p>
+<p>Currently the feature is <strong>unstable</strong> and gated by <code>#![feature(if_let_guard)]</code>.  If used without the feature, the compiler
+emits error E0658: “<code>if let</code> guards are experimental” (with a suggestion to use <code>matches!(…)</code> instead).<br />
+Tests in the Rust repository (e.g. <code>feature-gate.rs</code>) verify that using <code>if let</code> in a guard without the feature flag
+indeed produces this error.</p>
+<h2 id="syntax-and-examples">Syntax and Examples</h2>
+<p>The syntax for an <code>if let</code> guard follows the existing match-guard form, except using <code>if let</code> after the pattern:</p>
+<pre data-lang="text" style="background-color:#2b303b;color:#c0c5ce;" class="language-text "><code class="language-text" data-lang="text"><span>match EXPR {
+</span><span>    PAT if let P = E =&gt; BODY,
+</span><span>    // ...
+</span><span>}
+</span></code></pre>
+<p>Here <code>PAT</code> is an arbitrary pattern for the match arm, and <code>if let P = E</code> is the guard.  You can also combine multiple conditions
+with <code>&amp;&amp;</code>.  In fact, because of the related “let chains” feature, you can write multiple <code>let</code>-bindings chained by <code>&amp;&amp;</code> in the
+same guard.  For example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match</span><span> value {
+</span><span>    </span><span style="color:#65737e;">// Two let-conditions chained with `&amp;&amp;`
+</span><span>    (Some(a), Some(b)) </span><span style="color:#b48ead;">if let </span><span>Ok(x) = </span><span style="color:#96b5b4;">f</span><span>(a) &amp;&amp; </span><span style="color:#b48ead;">let </span><span>Ok(y) = </span><span style="color:#96b5b4;">g</span><span>(b) =&gt; {
+</span><span>        </span><span style="color:#65737e;">// use a, b, x, y here
+</span><span>    }
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>Examples of valid <code>if let</code> guards (with the feature enabled) include:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match</span><span> x {
+</span><span>    (n, m) </span><span style="color:#b48ead;">if let </span><span>(</span><span style="color:#d08770;">0</span><span>, Some(color)) = (n/</span><span style="color:#d08770;">10</span><span>, </span><span style="color:#96b5b4;">color_for_code</span><span>(m)) =&gt; { </span><span style="color:#65737e;">/* ... */ </span><span>}
+</span><span>    y </span><span style="color:#b48ead;">if let </span><span>Some(z) = </span><span style="color:#96b5b4;">helper</span><span>(y) =&gt; { </span><span style="color:#65737e;">/* ... */ </span><span>}
+</span><span>    _ =&gt; { </span><span style="color:#65737e;">/* ... */ </span><span>}
+</span><span>}
+</span></code></pre>
+<p>If the syntax is used incorrectly, the compiler gives an appropriate error. For instance, writing <code>(let PAT = EXPR)</code> parenthesized
+or using <code>if (let PAT = EXPR)</code> (i.e. wrapping a <code>let</code> in extra parentheses) is not accepted as a valid guard and instead produces
+a parse error “expected expression, found <code>let</code> statement”. This is tested in the Rust UI tests (e.g. <code>parens.rs</code> and <code>feature-gate.rs</code>). In short, <code>if let</code> must appear exactly as a guard after an <code>if</code>, not inside extra parentheses.</p>
+<h2 id="semantics-and-variable-scope">Semantics and Variable Scope</h2>
+<p>When a match arm has an <code>if let</code> guard, the evaluation proceeds as follows:</p>
+<ol>
+<li>The match scrutinee is matched against the arm’s main pattern <code>PAT</code>.  Any variables bound by <code>PAT</code> become available.</li>
+<li>If the main pattern matches, then the guard expression is evaluated.  In that expression, the bindings from <code>PAT</code> can be used.  The guard expression is of the form <code>let GUARD_PAT = GUARD_EXPR</code>.</li>
+<li>The result of <code>GUARD_EXPR</code> is matched against <code>GUARD_PAT</code>.  If this succeeds, then execution enters the arm’s body.  Otherwise the arm is skipped (and later arms are tried).</li>
+</ol>
+<p>Therefore, variables bound in the main pattern <code>PAT</code> are “live” during the evaluation of the guard, but any variables bound
+by <code>GUARD_PAT</code> only come into existence in the arm body (not in earlier code).  This corresponds directly to the RFC’s reference
+explanation: “the variables of <code>pat</code> are bound in <code>guard_expr</code>, and the variables of <code>pat</code> and <code>guard_pat</code> are bound in <code>body_expr</code>”.</p>
+<p>As an example, consider:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match </span><span>(opt, val) {
+</span><span>    (Some(x), _) </span><span style="color:#b48ead;">if let </span><span>Ok(y) = </span><span style="color:#96b5b4;">convert</span><span>(x) =&gt; {
+</span><span>        </span><span style="color:#65737e;">// Here `x` and `y` are in scope
+</span><span>        println!(&quot;</span><span style="color:#a3be8c;">Converted </span><span style="color:#d08770;">{}</span><span style="color:#a3be8c;"> into </span><span style="color:#d08770;">{}</span><span>&quot;, x, y);
+</span><span>    }
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>Here the pattern <code>(Some(x), _)</code> binds <code>x</code>. Then <code>convert(x)</code> is called, and its result is matched to <code>Ok(y)</code>.  If both steps
+succeed, the body can use both <code>x</code> and <code>y</code>.  If either fails (pattern fails or guard fails), this arm is skipped.</p>
+<p>One important restriction is that a single match arm cannot have two <code>if</code>-guards.  That is, you cannot write something like
+<code>PAT if cond1 if let P = E =&gt; ...</code> with two separate <code>if</code>s.  You may combine a normal boolean condition with a <code>let</code>
+by chaining with <code>&amp;&amp;</code>, but only one <code>if</code> keyword is allowed.  The RFC explicitly states “An arm may not have both an
+<code>if</code> and an <code>if let</code> guard” (i.e. you can’t do <code>if cond &amp;&amp; let ...</code> <em>and</em> then another <code>if</code>, etc.).<br />
+(You <em>can</em> do something like <code>if let P = E &amp;&amp; cond</code> by writing <code>if let P = E &amp;&amp; cond =&gt;</code>, treating the boolean as part
+of a let-chain, but that is a single <code>if</code> in syntax.)</p>
+<h2 id="feature-gate-and-errors">Feature Gate and Errors</h2>
+<p>As of now, <code>if let</code> guards are still unstable. The compiler requires the feature flag <code>#![feature(if_let_guard)]</code> to enable them.
+If one uses an <code>if let</code> guard without the feature, one gets an error similar to:</p>
+<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>error[E0658]: `if let` guards are experimental
+</span><span>   |
+</span><span>LL |     _ if let true = true =&gt; {}
+</span><span>   |        ^^^^^^^^^^^^^^^^
+</span><span>   = help: you can write `if matches!(&lt;expr&gt;, &lt;pattern&gt;)` instead of `if let &lt;pattern&gt; = &lt;expr&gt;`
+</span></code></pre>
+<p>This message is verified by the compiler’s test suite (e.g. <code>feature-gate.rs</code>) and comes from the feature-gate code in the parser.<br />
+The tests also ensure the old (<code>let</code>-in-<code>if</code> without the feature) error is preserved. For example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match </span><span>() {
+</span><span>    () </span><span style="color:#b48ead;">if </span><span style="color:#d08770;">true </span><span>&amp;&amp; </span><span style="color:#b48ead;">let </span><span style="color:#d08770;">0 </span><span>= </span><span style="color:#d08770;">1 </span><span>=&gt; {}      </span><span style="color:#65737e;">// error: `let` expressions are unstable (since no feature)
+</span><span>    () </span><span style="color:#b48ead;">if let </span><span style="color:#d08770;">0 </span><span>= </span><span style="color:#d08770;">1 </span><span>&amp;&amp; </span><span style="color:#d08770;">true </span><span>=&gt; {}      </span><span style="color:#65737e;">// error: `if let` guards are experimental
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>The test suite checks that these errors mention both the unstable-let and the experimental guard exactly as above.<br />
+Once the feature is stabilized, these errors will no longer appear.</p>
+<h2 id="temporaries-and-drop-order">Temporaries and Drop Order</h2>
+<p>A subtle aspect of <code>if let</code> guards is the handling of temporaries (and destructor calls) within the guard expression.
+The Rust reference explains that a <em>match guard</em> creates its own temporary scope: any temporaries produced by <code>GUARD_EXPR</code>
+live only until the guard finishes evaluating. Concretely, this means:</p>
+<ul>
+<li>The <code>guard_expr</code> is evaluated <em>after</em> matching <code>PAT</code> but <em>before</em> executing the arm’s body (if taken).</li>
+<li>Any temporary values created during <code>guard_expr</code> are dropped immediately after the guard’s scope ends (i.e. before entering the arm body).</li>
+<li>If the guard fails, those temporaries are dropped right then, and the compiler proceeds to the next arm.</li>
+</ul>
+<p>In effect, the drop semantics are the same as for an ordinary match guard or an <code>if let</code> in an <code>if</code> expression: no unexpected
+extension of lifetimes. (In Rust 2024 edition, there is a finer rule that even in <code>if let</code>
+expressions temporaries drop before the <code>else</code> block; but for match guards the effect is that temporaries from the
+guard are dropped before the arm body.)</p>
+<p>This behavior is exercised by the existing tests. For example, the <code>drop-order.rs</code> UI test uses <code>Drop</code>-implementing
+values in nested <code>if let</code> guards to verify the precise drop order. Those tests confirm that the values from the inner
+guards are dropped <em>first</em>, before values from outer contexts and before finally moving on to other arms. In short, the
+feature does not introduce any new irregularity in drop order: guard expressions are evaluated left-to-right
+(following let-chains semantics) and their temporaries die as soon as the guard completes.</p>
+<h2 id="lifetimes-and-variable-scope">Lifetimes and Variable Scope</h2>
+<p>Aside from drop timing, lifetimes of references in the guard work as expected. Because the pattern variables (<code>PAT</code> bindings)
+are in scope during <code>GUARD_EXPR</code>, one can take references to them or otherwise use them. Any reference or borrow introduced
+by the guard is scoped to the guard and arm body. For example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match </span><span>&amp;vec {
+</span><span>    v </span><span style="color:#b48ead;">if let </span><span>[first, </span><span style="color:#b48ead;">ref</span><span> rest @ ..] = v[..] =&gt; {
+</span><span>        </span><span style="color:#65737e;">// `first` and `rest` borrowed from `v` are valid here
+</span><span>        println!(&quot;</span><span style="color:#d08770;">{}</span><span>&quot;, first);
+</span><span>    }
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>Here <code>v</code> is <code>&amp;Vec</code>, and the guard borrows parts of it; those references are valid in the arm body. If a guard binds by value
+(e.g. <code>if let x = some_moveable</code>), the usual move/borrow rules apply (see below), but in all cases the scopes follow the match-arm rules.</p>
+<p>Moreover, an <code>if let</code> guard cannot break exhaustiveness: each arm is either taken or skipped in the usual way.
+A guard cannot cause a pattern to match something it wouldn’t normally match, it only <em>restricts</em> a match further.
+Tests like <code>exhaustive.rs</code> ensure that match exhaustiveness is checked as usual (you still need a wildcard arm if needed).
+No special exhaustiveness rules are introduced.</p>
+<h2 id="mutability-and-moves">Mutability and Moves</h2>
+<p>Patterns inside guards obey the normal mutability and move semantics. You can use <code>mut</code>, <code>ref</code>, or <code>ref mut</code>
+in the guard pattern just like in a <code>let</code> or match pattern. For example, <code>if let Some(ref mut x) = foo()</code> will mutably
+borrow from <code>foo()</code>. The borrow-checker treats moves in a guard pattern exactly as it would in a regular pattern: a move of a
+binding only occurs if that branch is actually taken, and subsequent code cannot use a moved value.</p>
+<p>This is tested by the <strong>move-guard-if-let</strong> suite.  For instance, consider:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">same_pattern</span><span>(</span><span style="color:#bf616a;">c</span><span>: </span><span style="color:#b48ead;">bool</span><span>) {
+</span><span>    </span><span style="color:#b48ead;">let mut</span><span> x: Box&lt;_&gt; = Box::new(</span><span style="color:#d08770;">1</span><span>);
+</span><span>    </span><span style="color:#b48ead;">let</span><span> v = (</span><span style="color:#d08770;">1</span><span>, </span><span style="color:#d08770;">2</span><span>);
+</span><span>    </span><span style="color:#b48ead;">match</span><span> v {
+</span><span>        (</span><span style="color:#d08770;">1</span><span>, _) </span><span style="color:#b48ead;">if let</span><span> y = *x &amp;&amp; c =&gt; (),
+</span><span>        (_, </span><span style="color:#d08770;">2</span><span>) </span><span style="color:#b48ead;">if let</span><span> z = *x =&gt; (),     </span><span style="color:#65737e;">// uses x after move
+</span><span>        _ =&gt; {}
+</span><span>    }
+</span><span>}
+</span></code></pre>
+<p>With <code>#![feature(if_let_guard)]</code>, the compiler correctly reports that <code>x</code> is moved by the first guard and then used again by
+the second pattern, which is an error. In the test output one sees messages like “<code>value moved here</code>”
+and “<code>value used here after move</code>” exactly pointing to the <code>if let</code> bindings. (These errors match the compiler’s normal behavior,
+confirming that <code>if let</code> guards do not bypass the borrow rules.) In contrast, if the pattern had used <code>ref</code> (e.g. <code>if let ref y = x</code>),
+no move would occur. The test suite also covers using <code>&amp;&amp;</code> with or-patterns and ensures borrowck handles those correctly.</p>
+<p>In summary, moving or borrowing in an <code>if let</code> guard is just like doing so in a regular <code>if let</code> or match: the borrow checker
+ensures no use-after-move, and moves only happen if the pattern actually matches. The existing UI tests for moves and mutability
+all pass under the current implementation, so there is no unsoundness here.</p>
+<h2 id="shadowing-and-macros">Shadowing and Macros</h2>
+<p>The usual Rust rules for shadowing and macros apply. An <code>if let</code> guard can introduce a new variable that <em>shadows</em> an existing one:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> x = </span><span style="color:#d08770;">10</span><span>;
+</span><span style="color:#b48ead;">match</span><span> v {
+</span><span>    (</span><span style="color:#d08770;">true</span><span>, _) </span><span style="color:#b48ead;">if let</span><span> x = </span><span style="color:#96b5b4;">compute</span><span>() =&gt; {
+</span><span>        </span><span style="color:#65737e;">// Here the `x` from the guard shadows the outer `x`.
+</span><span>        println!(&quot;</span><span style="color:#d08770;">{}</span><span>&quot;, x);
+</span><span>    }
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>This is allowed (just as in ordinary <code>if let</code> expressions) and works as expected; the tests (<code>shadowing.rs</code>) verify that the
+scoping is consistent.</p>
+<p>Macro expansion also works naturally. You can write macros that produce part of the guard. For example:</p>
+<pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#96b5b4;">macro_rules! </span><span>m { () =&gt; { Some(</span><span style="color:#d08770;">5</span><span>) } }
+</span><span style="color:#b48ead;">match</span><span> opt {
+</span><span>    Some(v) </span><span style="color:#b48ead;">if let </span><span>Some(w) = m!() =&gt; { </span><span style="color:#65737e;">/*...*/ </span><span>}
+</span><span>    _ =&gt; {}
+</span><span>}
+</span></code></pre>
+<p>Since the parser sees the expanded code, <code>if let</code> guards inside macros are supported. The Rust tests include cases where macros
+expand to an <code>if let</code> guard (fully or partially) to ensure the feature handles macro hygiene correctly. In short, <code>if let</code> guards
+are not disabled or altered in macro contexts; they simply follow the normal macro expansion rules of Rust.</p>
+<h2 id="soundness-and-pitfalls">Soundness and Pitfalls</h2>
+<p>No inherent unsoundness has been found in <code>if let</code> guards. They are purely syntactic sugar for nested pattern matching and condition
+checks. All borrow and move checks are done conservatively and correctly. The feature interacts with other parts of the language in
+predictable ways. For example:</p>
+<ul>
+<li><strong>Refutability:</strong>  An <code>if let</code> guard’s pattern is allowed to be refutable (since a failed match simply means skipping the arm). The tests ensure that irrefutable-let warnings do not occur (or can be allowed).</li>
+<li><strong>Matching order:</strong>  Guards are evaluated in sequence per arm; if the first part of a let-chain fails, later parts aren’t evaluated (preventing needless moves or panics).</li>
+<li><strong>No new invariants:</strong> Guard patterns do not introduce new lifetime or aliasing invariants beyond normal patterns. Temporaries and borrows expire normally.</li>
+</ul>
+<p>All of the edge cases are covered by the existing UI tests. For example, the <code>exhaustive.rs</code> test confirms that match exhaustiveness
+remains correct when using <code>if let</code> guards (i.e. a wildcard arm is needed if not all cases are covered).
+The <code>typeck.rs</code> and <code>type-inference.rs</code> tests verify that type inference and generic code work through <code>if let</code> guards as expected.
+The compiler’s own test suite includes dozens of <code>if let</code> guard tests under <code>src/test/ui/rfcs/rfc-2294-if-let-guard/</code>,
+and all of them pass with the current implementation.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>The feature is fully implemented in the compiler and exercised by many tests. Its syntax and semantics are clear and consistent with
+existing Rust rules: pattern bindings from the arm are in scope in the guard, and guard bindings are in scope in the arm body.
+The compiler enforces the usual ownership rules (as seen in the move tests) and handles temporaries in a straightforward way.</p>
+<p><strong>Status:</strong> implemented and well-tested, awaiting only formal documentation <a href="https://github.com/rust-lang/reference/pull/1823">(I've also made one)</a> to be fully ready for a stable release.</p>
+<p><strong>References:</strong> details from RFC 2294 and the current compiler behavior are used above. Each cited source shows the design or
+diagnostics of <code>if let</code> guards in action.</p>
+
+
+            </main>
+            <footer>
+                
+<p class="taxonomies">
+
+</p>
+
+                
+            </footer>
+        </div>
+    </body>
+</html>
+        
