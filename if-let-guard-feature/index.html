@@ -26,9 +26,9 @@
         
         
 
-        <title>if let guard in-depth review</title>
+        <title>Feature `if let` guard overview</title>
         
-        <meta name="title" content="if let guard in-depth review">
+        <meta name="title" content="Feature `if let` guard overview">
         <meta name="author" content="Kivooeo">
         <meta name="description" content="this my blog that never ever existed.">
         <meta name="generator" content="Zola v0.16.1">
@@ -36,7 +36,7 @@
         <meta property="og:type" content="website">
         <meta property="og:url" content="https://kivooeo.github.io/if-let-guard-feature/">
         <meta property="og:site_name" content="none blog!">
-        <meta property="og:title" content="if let guard in-depth review">
+        <meta property="og:title" content="Feature `if let` guard overview">
         <meta property="og:description" content="this my blog that never ever existed.">
         <meta property="og:image" content="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;images&#x2F;logo.png">
 
@@ -44,7 +44,7 @@
         
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="https://kivooeo.github.io/if-let-guard-feature/">
-        <meta property="twitter:title" content="if let guard in-depth review">
+        <meta property="twitter:title" content="Feature `if let` guard overview">
         <meta property="twitter:description" content="this my blog that never ever existed.">
         <meta property="twitter:image" content="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;images&#x2F;logo.png">
         
@@ -56,8 +56,8 @@
                 "description":"this my blog that never ever existed.",
                 "url":"https://kivooeo.github.io/if-let-guard-feature/",
                 "@type":"WebSite",
-                "headline":"if let guard in-depth review",
-                "name":"if let guard in-depth review",
+                "headline":"Feature `if let` guard overview",
+                "name":"Feature `if let` guard overview",
                 "author":{
                     "@type":"Person",
                     "name":"Kivooeo"
@@ -88,7 +88,7 @@
                 
 <p><a href="..">..</a>/if-let-guard-feature</p>
 <p class="post-meta"><time datetime=""></time></p>
-<h1>if let guard in-depth review</h1>
+<h1>Feature `if let` guard overview</h1>
 
             </header>
             <main class="page-content" aria-label="Content">
@@ -96,8 +96,7 @@
 
 
 
-<h3 id="feature-overview">Feature overview</h3>
-<p>Rust’s <em><code>if let</code> guards</em> feature allows match arms to include an <code>if let</code> condition, enabling a pattern match and a conditional check
+<p>Rust’s <code>if let</code> guards feature allows match arms to include an <code>if let</code> condition, enabling a pattern match and a conditional check
 in one guard.  In other words, a match arm can be written as:</p>
 <pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">match</span><span> value {
 </span><span>    </span><span style="color:#d08770;">PATTERN </span><span style="color:#b48ead;">if let </span><span style="color:#d08770;">GUARD_PAT </span><span>= </span><span style="color:#d08770;">GUARD_EXPR </span><span>=&gt; { </span><span style="color:#65737e;">/* body */ </span><span>},
@@ -121,6 +120,7 @@ in the guard also matches.  (Per design, a match arm may have <em>either</em> a 
 emits error E0658: “<code>if let</code> guards are experimental” (with a suggestion to use <code>matches!(…)</code> instead).<br />
 Tests in the Rust repository (e.g. <code>feature-gate.rs</code>) verify that using <code>if let</code> in a guard without the feature flag
 indeed produces this error.</p>
+<hr />
 <h2 id="syntax-and-examples">Syntax and Examples</h2>
 <p>The syntax for an <code>if let</code> guard follows the existing match-guard form, except using <code>if let</code> after the pattern:</p>
 <pre data-lang="text" style="background-color:#2b303b;color:#c0c5ce;" class="language-text "><code class="language-text" data-lang="text"><span>match EXPR {
@@ -149,6 +149,7 @@ same guard.  For example:</p>
 <p>If the syntax is used incorrectly, the compiler gives an appropriate error. For instance, writing <code>(let PAT = EXPR)</code> parenthesized
 or using <code>if (let PAT = EXPR)</code> (i.e. wrapping a <code>let</code> in extra parentheses) is not accepted as a valid guard and instead produces
 a parse error “expected expression, found <code>let</code> statement”. This is tested in the Rust UI tests (e.g. <code>parens.rs</code> and <code>feature-gate.rs</code>). In short, <code>if let</code> must appear exactly as a guard after an <code>if</code>, not inside extra parentheses.</p>
+<hr />
 <h2 id="semantics-and-variable-scope">Semantics and Variable Scope</h2>
 <p>When a match arm has an <code>if let</code> guard, the evaluation proceeds as follows:</p>
 <ol>
@@ -176,6 +177,7 @@ by chaining with <code>&amp;&amp;</code>, but only one <code>if</code> keyword i
 <code>if</code> and an <code>if let</code> guard” (i.e. you can’t do <code>if cond &amp;&amp; let ...</code> <em>and</em> then another <code>if</code>, etc.).<br />
 (You <em>can</em> do something like <code>if let P = E &amp;&amp; cond</code> by writing <code>if let P = E &amp;&amp; cond =&gt;</code>, treating the boolean as part
 of a let-chain, but that is a single <code>if</code> in syntax.)</p>
+<hr />
 <h2 id="feature-gate-and-errors">Feature Gate and Errors</h2>
 <p>As of now, <code>if let</code> guards are still unstable. The compiler requires the feature flag <code>#![feature(if_let_guard)]</code> to enable them.
 If one uses an <code>if let</code> guard without the feature, one gets an error similar to:</p>
@@ -195,6 +197,7 @@ The tests also ensure the old (<code>let</code>-in-<code>if</code> without the f
 </span></code></pre>
 <p>The test suite checks that these errors mention both the unstable-let and the experimental guard exactly as above.<br />
 Once the feature is stabilized, these errors will no longer appear.</p>
+<hr />
 <h2 id="temporaries-and-drop-order">Temporaries and Drop Order</h2>
 <p>A subtle aspect of <code>if let</code> guards is the handling of temporaries (and destructor calls) within the guard expression.
 The Rust reference explains that a <em>match guard</em> creates its own temporary scope: any temporaries produced by <code>GUARD_EXPR</code>
@@ -213,6 +216,7 @@ values in nested <code>if let</code> guards to verify the precise drop order. Th
 guards are dropped <em>first</em>, before values from outer contexts and before finally moving on to other arms. In short, the
 feature does not introduce any new irregularity in drop order: guard expressions are evaluated left-to-right
 (following let-chains semantics) and their temporaries die as soon as the guard completes.</p>
+<hr />
 <h2 id="lifetimes-and-variable-scope">Lifetimes and Variable Scope</h2>
 <p>Aside from drop timing, lifetimes of references in the guard work as expected. Because the pattern variables (<code>PAT</code> bindings)
 are in scope during <code>GUARD_EXPR</code>, one can take references to them or otherwise use them. Any reference or borrow introduced
@@ -231,6 +235,7 @@ by the guard is scoped to the guard and arm body. For example:</p>
 A guard cannot cause a pattern to match something it wouldn’t normally match, it only <em>restricts</em> a match further.
 Tests like <code>exhaustive.rs</code> ensure that match exhaustiveness is checked as usual (you still need a wildcard arm if needed).
 No special exhaustiveness rules are introduced.</p>
+<hr />
 <h2 id="mutability-and-moves">Mutability and Moves</h2>
 <p>Patterns inside guards obey the normal mutability and move semantics. You can use <code>mut</code>, <code>ref</code>, or <code>ref mut</code>
 in the guard pattern just like in a <code>let</code> or match pattern. For example, <code>if let Some(ref mut x) = foo()</code> will mutably
@@ -255,6 +260,7 @@ no move would occur. The test suite also covers using <code>&amp;&amp;</code> wi
 <p>In summary, moving or borrowing in an <code>if let</code> guard is just like doing so in a regular <code>if let</code> or match: the borrow checker
 ensures no use-after-move, and moves only happen if the pattern actually matches. The existing UI tests for moves and mutability
 all pass under the current implementation, so there is no unsoundness here.</p>
+<hr />
 <h2 id="shadowing-and-macros">Shadowing and Macros</h2>
 <p>The usual Rust rules for shadowing and macros apply. An <code>if let</code> guard can introduce a new variable that <em>shadows</em> an existing one:</p>
 <pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">let</span><span> x = </span><span style="color:#d08770;">10</span><span>;
@@ -278,6 +284,7 @@ scoping is consistent.</p>
 <p>Since the parser sees the expanded code, <code>if let</code> guards inside macros are supported. The Rust tests include cases where macros
 expand to an <code>if let</code> guard (fully or partially) to ensure the feature handles macro hygiene correctly. In short, <code>if let</code> guards
 are not disabled or altered in macro contexts; they simply follow the normal macro expansion rules of Rust.</p>
+<hr />
 <h2 id="soundness-and-pitfalls">Soundness and Pitfalls</h2>
 <p>No inherent unsoundness has been found in <code>if let</code> guards. They are purely syntactic sugar for nested pattern matching and condition
 checks. All borrow and move checks are done conservatively and correctly. The feature interacts with other parts of the language in
@@ -292,6 +299,7 @@ remains correct when using <code>if let</code> guards (i.e. a wildcard arm is ne
 The <code>typeck.rs</code> and <code>type-inference.rs</code> tests verify that type inference and generic code work through <code>if let</code> guards as expected.
 The compiler’s own test suite includes dozens of <code>if let</code> guard tests under <code>src/test/ui/rfcs/rfc-2294-if-let-guard/</code>,
 and all of them pass with the current implementation.</p>
+<hr />
 <h2 id="conclusion">Conclusion</h2>
 <p>The feature is fully implemented in the compiler and exercised by many tests. Its syntax and semantics are clear and consistent with
 existing Rust rules: pattern bindings from the arm are in scope in the guard, and guard bindings are in scope in the arm body.
