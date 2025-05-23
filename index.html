@@ -7,33 +7,34 @@
 
 <head>
     <!-- change this to your project name -->
-    <title>eframe template</title>
+    <title>π-meow cipher</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    
-<script type="module">
-import init, * as bindings from '/eframe_template.js';
-const wasm = await init({ module_or_path: '/eframe_template_bg.wasm' });
+
+    <script type="module">
+        import init, * as bindings from '/eframe_template.js';
+        const wasm = await init({ module_or_path: '/eframe_template_bg.wasm' });
 
 
-window.wasmBindings = bindings;
+        window.wasmBindings = bindings;
 
 
-dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+        dispatchEvent(new CustomEvent("TrunkApplicationStarted", { detail: { wasm } }));
 
-</script>
+    </script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base href="/" />
 
-    <link rel="icon" href="/favicon.ico" integrity="sha384-jNOAE6jgE03LznIulCTVP6BH4NrTuROFjP9wj8bV1UUMJKtZAvstFpIAP3PDcFpx"/>
+    <link rel="icon" href="/favicon.ico"
+        integrity="sha384-jNOAE6jgE03LznIulCTVP6BH4NrTuROFjP9wj8bV1UUMJKtZAvstFpIAP3PDcFpx" />
 
 
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
 
 
     <link rel="manifest" href="manifest.json">
@@ -127,7 +128,12 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="/eframe_template.js" crossorigin="anonymous" integrity="sha384-S7BpTTnvevYw3+6/LW2k4qqEIhPe4tCxVCc+nRUzImw8KDHGSbUscdvNr0cEgviC"><link rel="preload" href="/eframe_template_bg.wasm" crossorigin="anonymous" integrity="sha384-lqBQEKnwuk/tmPgPwTqlmDO4isl3pqAUqkfuB8X4VzIxehFD8c703vOoHvqjxOEc" as="fetch" type="application/wasm"></head>
+    <link rel="modulepreload" href="/eframe_template.js" crossorigin="anonymous"
+        integrity="sha384-S7BpTTnvevYw3+6/LW2k4qqEIhPe4tCxVCc+nRUzImw8KDHGSbUscdvNr0cEgviC">
+    <link rel="preload" href="/eframe_template_bg.wasm" crossorigin="anonymous"
+        integrity="sha384-lqBQEKnwuk/tmPgPwTqlmDO4isl3pqAUqkfuB8X4VzIxehFD8c703vOoHvqjxOEc" as="fetch"
+        type="application/wasm">
+</head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
