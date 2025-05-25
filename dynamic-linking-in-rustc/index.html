@@ -96,83 +96,67 @@
 
 
 
-<p>Rust’s <code>prefer-dynamic</code> flag enables dynamic linking for smaller binaries by relying on shared libraries (e.g., Rust’s standard library) at runtime. Use cases are specific, and static linking remains the default for portability</p>
-<hr />
-<h3 id="how-it-works">How It Works</h3>
-<ul>
-<li>
-<p><strong>Static vs. Dynamic</strong>:<br />
-Static linking (default) embeds all dependencies into the binary. Dynamic linking loads libraries (e.g., <code>libstd</code>) at runtime, reducing binary size but requiring those libraries on the target system</p>
-</li>
-<li>
-<p><strong>Usage</strong>:<br />
-Pass the flag to <code>rustc</code> directly:</p>
-<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>rustc -C prefer-dynamic main.rs
+<p>Rust's <code>prefer-dynamic</code> flag enables dynamic linking, creating smaller binaries by loading shared libraries at runtime instead of embedding them. While static linking remains the default for maximum portability, dynamic linking offers compelling advantages for specific use cases.</p>
+<h2 id="how-it-works">How It Works</h2>
+<p><strong>Static vs. Dynamic Linking</strong>: Rust defaults to static linking, which embeds all dependencies directly into the binary. This creates self-contained executables but results in larger file sizes. Dynamic linking takes a different approach—it creates binaries that load required libraries (like <code>libstd</code>) at runtime, dramatically reducing binary size at the cost of requiring those libraries to be present on the target system.</p>
+<p><strong>Usage</strong>: You can enable dynamic linking by passing the flag directly to <code>rustc</code>:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">rustc -C</span><span> prefer-dynamic main.rs
 </span></code></pre>
-<p>or via Cargo (example will be below)</p>
-<p><em>Note:</em> Only affects compatible dependencies (e.g., <code>libstd</code>). Some crates still link statically</p>
-</li>
-</ul>
-<hr />
-<h3 id="pros">Pros</h3>
-<ol>
-<li><strong>Smaller Binaries</strong>:<br />
-Reduces size from MBs to KBs for tools/plugins.</li>
-<li><strong>Shared Systems</strong>:<br />
-Multiple Rust apps on one system share a single <code>libstd</code> in memory</li>
-<li><strong>Plugins/Mods</strong>:<br />
-Facilitates lightweight, reloadable modules</li>
-</ol>
-<hr />
-<h3 id="cons">Cons</h3>
-<ul>
-<li><strong>Dependency Requirements</strong>: Target systems must have the exact library versions (e.g., <code>libstd-*.so</code>)</li>
-<li><strong>Limited Compatibility</strong>: Many crates lack dynamic versions</li>
-<li><strong>Version Mismatches</strong>: Risk of crashes if library versions differ between build and target systems</li>
-<li><strong>Minor Overhead</strong>: Runtime library loading adds negligible latency</li>
-</ul>
-<hr />
-<h3 id="example">Example</h3>
-<p>Let's build this basic code for start with just static linking</p>
+<p>Or configure it system-wide via Cargo (see example below).</p>
+<p><strong>Important Note</strong>: Only compatible dependencies support dynamic linking. The Rust standard library (<code>libstd</code>) is the primary candidate, while many third-party crates will still link statically regardless of this flag.</p>
+<h2 id="advantages">Advantages</h2>
+<p><strong>Dramatically Smaller Binaries</strong>: File sizes can shrink from megabytes to kilobytes, making this ideal for tools, plugins, or scenarios where binary size matters.</p>
+<p><strong>Memory Efficiency</strong>: Multiple Rust applications on the same system can share a single copy of <code>libstd</code> in memory, reducing overall resource usage.</p>
+<p><strong>Plugin Architecture</strong>: Facilitates the creation of lightweight, reloadable modules that can be updated independently of the main application.</p>
+<h2 id="disadvantages">Disadvantages</h2>
+<p><strong>Runtime Dependencies</strong>: Target systems must have the exact library versions available (e.g., <code>libstd-*.so</code> files), which can complicate deployment.</p>
+<p><strong>Limited Ecosystem Support</strong>: Many crates don't provide dynamic versions, limiting the size reduction benefits.</p>
+<p><strong>Version Compatibility Risks</strong>: Mismatched library versions between build and runtime environments can cause crashes or unexpected behavior.</p>
+<p><strong>Runtime Overhead</strong>: While minimal, there's a small performance cost for library loading at startup.</p>
+<h2 id="practical-example">Practical Example</h2>
+<p>Let's start with a simple Rust program to demonstrate the difference:</p>
 <pre data-lang="rust" style="background-color:#2b303b;color:#c0c5ce;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">main</span><span>() {
-</span><span>    println!(&quot;</span><span style="color:#a3be8c;">Hello, world</span><span>&quot;);
+</span><span>    println!(&quot;</span><span style="color:#a3be8c;">Hello, world!</span><span>&quot;);
 </span><span>}
 </span></code></pre>
-<p>so we run <code>cargo build --release</code> here and see this</p>
-<p><code>-a----          5/6/2025   2:50 AM         134144 f</code></p>
-<p>then, to tell cargo run <code>prefer-dynamic</code> as argument, we should write</p>
+<p>First, build with default static linking:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">cargo</span><span> build</span><span style="color:#bf616a;"> --release
+</span></code></pre>
+<p>Result: <code>134,144 bytes</code></p>
+<p>To enable dynamic linking via Cargo, add this to your <code>~/.cargo/config.toml</code>:</p>
 <pre data-lang="toml" style="background-color:#2b303b;color:#c0c5ce;" class="language-toml "><code class="language-toml" data-lang="toml"><span>[build]
 </span><span style="color:#bf616a;">rustflags </span><span>= [&quot;</span><span style="color:#a3be8c;">-C</span><span>&quot;, &quot;</span><span style="color:#a3be8c;">prefer-dynamic</span><span>&quot;]
 </span></code></pre>
-<p>in <code>~/.cargo/config.toml</code>, and now... we can recompile this to watch results
-running <code>cargo build --release</code> once again and see</p>
-<p><code>-a----          5/6/2025   2:55 AM          10240 f</code></p>
-<p>it's way better, agree?</p>
-<h3 id="problems-you-may-face">Problems you may face</h3>
-<p>so just right after compiling this thing and trying to run it, you likely we'll see something like this</p>
+<p>Rebuild with the same command:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">cargo</span><span> build</span><span style="color:#bf616a;"> --release
+</span></code></pre>
+<p>Result: <code>10,240 bytes</code> — a 92% size reduction!</p>
+<h2 id="solving-runtime-issues">Solving Runtime Issues</h2>
+<p>After compilation, you'll likely encounter this error when trying to run your binary:</p>
 <pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>$ ./main
 </span><span>./main: error while loading shared libraries: libstd-f6265b21db1f990f.so: cannot open shared object file: No such file or directory
 </span></code></pre>
-<p>this problem occurs because our binary can't find a .so stdlib files in <code>LD_LIBRARY_PATH</code>, so to fix it, we have to manually setup this, on linux you can do something like this</p>
-<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#b48ead;">export </span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span>=$</span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span style="color:#a3be8c;">:</span><span style="color:#bf616a;">~</span><span style="color:#a3be8c;">/.rustup/toolchains/</span><span>&lt;toolchain&gt;/lib/rustlib/&lt;toolchain&gt;/lib/
+<p>This happens because the system can't locate the required shared libraries. Here's how to fix it:</p>
+<p><strong>Linux/macOS</strong>:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#b48ead;">export </span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span>=$</span><span style="color:#bf616a;">LD_LIBRARY_PATH</span><span style="color:#a3be8c;">:</span><span style="color:#bf616a;">~</span><span style="color:#a3be8c;">/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib/
 </span></code></pre>
-<p>or for windows you should use this</p>
-<pre data-lang="powershell" style="background-color:#2b303b;color:#c0c5ce;" class="language-powershell "><code class="language-powershell" data-lang="powershell"><span>$</span><span style="color:#bf616a;">env:Path </span><span>= &quot;$</span><span style="color:#bf616a;">env:Path</span><span style="color:#a3be8c;">;</span><span>$</span><span style="color:#bf616a;">env:USERPROFILE</span><span style="color:#a3be8c;">\.rustup\toolchains\&lt;toolchain&gt;\lib\rustlib\&lt;toolchain&gt;\lib</span><span>&quot;
+<p><strong>Windows</strong>:</p>
+<pre data-lang="powershell" style="background-color:#2b303b;color:#c0c5ce;" class="language-powershell "><code class="language-powershell" data-lang="powershell"><span>$</span><span style="color:#bf616a;">env:Path </span><span>= &quot;$</span><span style="color:#bf616a;">env:Path</span><span style="color:#a3be8c;">;</span><span>$</span><span style="color:#bf616a;">env:USERPROFILE</span><span style="color:#a3be8c;">\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib</span><span>&quot;
 </span></code></pre>
-<p>this directory will contain all .so (or .rlib or .dll im not sure what windows version uses) files that you need to run the programm correctly, after adding a path to our library we can finally and most likely succesfully run our binary</p>
-<pre style="background-color:#2b303b;color:#c0c5ce;"><code><span>$  ~ ./main  
-</span><span>Hello, world!
-</span><span>$  ~ ls -ls main   
-</span><span>20 -rwxr-xr-x 1 coder coder 17064 May  8 07:49 main
+<p>Replace <code>stable-x86_64-unknown-linux-gnu</code> with your actual toolchain name (check <code>~/.rustup/toolchains/</code> for available options).</p>
+<p>After setting the library path, your binary should run successfully:</p>
+<pre data-lang="bash" style="background-color:#2b303b;color:#c0c5ce;" class="language-bash "><code class="language-bash" data-lang="bash"><span style="color:#bf616a;">$</span><span> ./main
+</span><span style="color:#bf616a;">Hello,</span><span> world!
+</span><span style="color:#bf616a;">$</span><span> ls</span><span style="color:#bf616a;"> -l</span><span> main
+</span><span style="color:#bf616a;">-rwxr-xr-x</span><span> 1 user user 17064 May 8 07:49 main
 </span></code></pre>
-<h2 id="moi-kotik"><img src="/images/cat.gif" alt="Мой котик" /></h2>
-<h3 id="when-to-avoid">When to Avoid</h3>
-<ul>
-<li><strong>Portable Apps</strong>: Static linking ensures no external dependencies</li>
-<li><strong>Uncontrolled Environments</strong>: Avoid dependency issues on user machines</li>
-<li><strong>Performance-Critical Code</strong>: Static binaries eliminate runtime linking overhead</li>
-<li><strong>LTO</strong>: It's just not works when LTO enabled</li>
-</ul>
+<h2 id="when-to-avoid-dynamic-linking">When to Avoid Dynamic Linking</h2>
+<p><strong>Portable Applications</strong>: If you need self-contained binaries that run anywhere without setup, stick with static linking.</p>
+<p><strong>Uncontrolled Deployment Environments</strong>: When you can't guarantee the presence of required libraries on target systems.</p>
+<p><strong>Performance-Critical Applications</strong>: Static binaries eliminate the small runtime linking overhead, which may matter for high-performance scenarios.</p>
+<p><strong>Link-Time Optimization (LTO)</strong>: Dynamic linking is incompatible with LTO, which can provide significant performance benefits for statically-linked binaries.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Dynamic linking in Rust is a powerful tool for specific scenarios—particularly when binary size matters or when building plugin architectures. However, it comes with deployment complexity that makes static linking the better default choice for most applications. Consider your deployment requirements carefully before choosing between static and dynamic linking strategies.</p>
 
 
             </main>
