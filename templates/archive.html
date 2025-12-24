@@ -1,0 +1,29 @@
+{% extends 'index.html' %}
+
+{% block main %}
+<h1>archive</h1>
+<ul>
+  {% set index = get_section(path="_index.md") %}
+  {% for s in index.subsections %}
+  {% set subsection = get_section(path=s) %}
+  {% if subsection.title != "archive" %}
+  <li>
+    <a href="{{ subsection.permalink | safe}}">
+      {{ subsection.title }}
+    </a>
+  </li>
+  {% if subsection.pages %}
+  <ul>
+    {% for page in subsection.pages %}
+    <li>
+      <a href="{{ page.permalink | safe}}">
+        {{ page.date }} => {{ page.title }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+  {% endfor %}
+</ul>
+{% endblock main %}

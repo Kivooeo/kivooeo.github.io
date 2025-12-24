@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {% block head %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  {% if config.description -%}
+  <meta name="description" content="{{ config.description }}">
+  {% endif %}
+
+  <title>{% block title %} {{ config.title }} {% endblock title %}</title>
+
+  {% block css %}
+  <link rel="stylesheet" href="{{ get_url(path='theme.css', trailing_slash=false) | safe }}">
+  {% endblock css %}
+  {% endblock head %}
+</head>
+
+<body>
+  <div class="content">
+    {% block body %}
+    {% block header %}
+    <header>
+      <div class="pull-right">
+        [<a href="{{ config.extra.homepage }}">homepage</a>]
+        [<a href="{{ config.base_url }}">blog</a>]
+        [<a href="{{ config.base_url }}/archive">archive</a>]
+        [<a href="{{ config.base_url }}/atom.xml">rss</a>]
+        [<a href="{{ config.extra.git_source }}">source</a>]
+      </div>
+      <div class="title">
+        <strong>{{ config.title }}</strong>
+      </div>
+      <div class="subtitle">{{ config.extra.subtitle }}</div>
+    </header>
+    {% endblock header %}
+
+    <main>
+      {% block main %}
+      <h1>index</h1>
+      <ul>
+        {% set index = get_section(path="_index.md") %}
+        {% for s in index.subsections %}
+        {% set subsection = get_section(path=s) %}
+        {% if subsection.pages %}
+        {% for page in subsection.pages %}
+        <li>
+          <a href="{{ page.permalink | safe}}">
+            {{ page.date }} => {{ page.title }}
+          </a>
+        </li>
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% endblock main %}
+    </main>
+  </div>
+
+  <footer>
+    {% block footer %}
+    <p>{{ config.extra.license }} <a href="{{ config.extra.homepage }}">{{ config.extra.author }}</a> &mdash; <a
+        href="mailto:{{ config.extra.email }}">{{ config.extra.email }}</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and the <a href="https://git.sr.ht/~savoy/tilde">tilde</a> theme</p>
+    {% endblock footer %}
+  </footer>
+
+  {% endblock body %}
+</body>
+
+
+</html>

@@ -1,0 +1,17 @@
+{% extends "index.html" %}
+
+{% block main %}
+{% if section.pages %}
+<h1>{{ section.title }}</h1>
+<div class="border"></div>
+<ul>
+  {% for p in section.pages %}
+  <li>
+    <a href="{{ p.permalink | safe}}">
+      {{ p.date }} => {{ p.title }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock main %}
