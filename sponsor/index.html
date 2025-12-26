@@ -6,9 +6,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="Hi! I am a member of the Rust compiler team. Over the past ten months, I have made over 400 contributions, including fixing bugs, improving diagnostics, stabilising features, reviewing pull requests a…">
 
-  <title> kivo&#x27;s blog </title>
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:title" content="Sponsor">
+  <meta property="og:description" content="Hi! I am a member of the Rust compiler team. Over the past ten months, I have made over 400 contributions, including fixing bugs, improving diagnostics, stabilising features, reviewing pull requests a…">
+  <meta property="og:url" content="https://kivooeo.github.io/sponsor/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Sponsor">
+  <meta name="twitter:description" content="Hi! I am a member of the Rust compiler team. Over the past ten months, I have made over 400 contributions, including fixing bugs, improving diagnostics, stabilising features, reviewing pull requests a…">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>Sponsor | kivo&#x27;s blog</title>
 
   
   <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
@@ -22,15 +42,31 @@
     
     <header>
       <div class="pull-right">
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">homepage</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
       </div>
       <div class="title">
-        <strong>kivo&#x27;s blog</strong>
+        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
       </div>
       <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+        </div>
+      </div>
     </header>
     
 
@@ -43,12 +79,57 @@
     <time datetime=" 2025-12-12" class="date" itemprop="datePublished">
       12 Dec 2025
     </time>
+    
   </div>
+  
+  <details class="toc" open>
+    <summary>Contents</summary>
+    
+<ul>
+  
+  <li>
+    <a href="#why-support-me">Why support me?</a>
+    
+    
+<ul>
+  
+  <li>
+    <a href="#why-only-crypto">Why only crypto?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#how-to-support">How to support?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#if-you-really-want-to-support-financially-but-don-t-have-crypto">If you really want to support financially but don&#x27;t have crypto</a>
+    
+  </li>
+  
+  <li>
+    <a href="#other-ways-to-help">Other ways to help</a>
+    
+  </li>
+  
+</ul>
+
+    
+  </li>
+  
+</ul>
+
+  </details>
+  
   <div class="articleBody">
     <p>Hi!</p>
-<p>I'm a member of the Rust compiler team. Over the last eight month, I've made 170+ contributions - fixing bugs, improving diagnostics, stabilizing features</p>
-<p>I work part-time teaching children, which covers my basic needs and leaves time for compiler work. Any support beyond that just... makes me happy 0_0, it's nice to know people appreciate the work, and allows me buy silly things I'd like</p>
-<h3 id="why-only-crypto">Why only crypto?</h3>
+<p>I am a member of the Rust compiler team. Over the past ten months, I have made over 400 contributions, including fixing bugs, improving diagnostics, stabilising features, reviewing pull requests and mentoring new contributors</p>
+<p>I care deeply about Rust, and I plan to continue investing a lot of time in improving the compiler, the test suite and the experience of contributors</p>
+<h2 id="why-support-me"><a class="zola-anchor" href="#why-support-me" aria-label="Anchor link for: why-support-me">Why support me?</a></h2>
+<p>Your support enables me to dedicate more focused time to compiler development and mentoring. I am transitioning from part-time teaching into a position related to Rust and also moving to another city. Any additional support would make this transition smoother and enable me to maintain my focus on long-term contributions</p>
+<p>If you have found my work, blog posts, mentoring or compiler improvements valuable, this is one way you can help me to continue doing them</p>
+<h3 id="why-only-crypto"><a class="zola-anchor" href="#why-only-crypto" aria-label="Anchor link for: why-only-crypto">Why only crypto?</a></h3>
 <p>I'm in Russia, where:</p>
 <ul>
 <li>
@@ -66,16 +147,41 @@
 </ul>
 </li>
 </ul>
-<p>Crypto is the only option available to me right now</p>
-<h3 id="how-to-support">How to Support?</h3>
+<p>At the moment, cryptocurrency is the only viable option for receiving support</p>
+<h3 id="how-to-support"><a class="zola-anchor" href="#how-to-support" aria-label="Anchor link for: how-to-support">How to support?</a></h3>
 <p>SOL: Ao3QhbFqBidnMnhKVHxsETmvWBfpL3oZL876FDArCfaX</p>
 <p>ETC: 0xe1f27D7B1665D88B72874E327e70e4e439751Cfa</p>
-<h3 id="other-ways-to-help">Other Ways to Help</h3>
-<p>Just be kind in the community and be respectful &lt;3</p>
-<p>I'll keep contributing either way!</p>
+<h3 id="if-you-really-want-to-support-financially-but-don-t-have-crypto"><a class="zola-anchor" href="#if-you-really-want-to-support-financially-but-don-t-have-crypto" aria-label="Anchor link for: if-you-really-want-to-support-financially-but-don-t-have-crypto">If you really want to support financially but don't have crypto</a></h3>
+<p>All you need is</p>
+<ol>
+<li>
+<p>visit <a href="https://simpleswap.io/">this website</a>, no registration or anything needed</p>
+</li>
+<li>
+<p>Then choose second tab "Buy/Sell Crypto"</p>
+</li>
+<li>
+<p>Here you select</p>
+<ul>
+<li>USD or EUR on top</li>
+<li>SOL on bot</li>
+<li>and paste my wallet in here</li>
+</ul>
+</li>
+<li>
+<p>Confirm payment and that's it! :3</p>
+</li>
+</ol>
+<p>You can see all donations <a href="https://solscan.io/account/Ao3QhbFqBidnMnhKVHxsETmvWBfpL3oZL876FDArCfaX">here</a></p>
+<h3 id="other-ways-to-help"><a class="zola-anchor" href="#other-ways-to-help" aria-label="Anchor link for: other-ways-to-help">Other ways to help</a></h3>
+<p>Whether you choose to support me financially, follow my journey or contribute to Rust yourself, I truly appreciate it. Being part of this community means a lot to me!</p>
 
   </div>
+  
 </article>
+
+<button id="to-contents" class="to-contents" type="button" aria-label="Back to contents" title="Back to contents" hidden>↑ contents</button>
+
 
     </main>
   </div>
@@ -90,6 +196,67 @@
   </footer>
 
   
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
 </body>
 
 

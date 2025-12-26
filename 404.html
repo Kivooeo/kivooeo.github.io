@@ -6,9 +6,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="for rarely posting silly stuff">
 
-  <title> kivo&#x27;s blog </title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:title" content="kivo&#x27;s blog">
+  <meta property="og:description" content="for rarely posting silly stuff">
+  <meta property="og:url" content="https://kivooeo.github.io">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="kivo&#x27;s blog">
+  <meta name="twitter:description" content="for rarely posting silly stuff">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>kivo&#x27;s blog</title>
 
   
   <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
@@ -22,15 +42,31 @@
     
     <header>
       <div class="pull-right">
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">homepage</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
       </div>
       <div class="title">
-        <strong>kivo&#x27;s blog</strong>
+        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
       </div>
       <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+        </div>
+      </div>
     </header>
     
 
@@ -42,6 +78,24 @@
         
         
         
+        
+        <li>
+          <a href="https://kivooeo.github.io/blog/e-needs-test/">
+            2026-02-14 => part 1: Tackling an `E-needs-test` issue
+          </a>
+        </li>
+        
+        <li>
+          <a href="https://kivooeo.github.io/blog/first-part-of-contibuting/">
+            2026-01-28 => So You Want to Contribute to Rust
+          </a>
+        </li>
+        
+        <li>
+          <a href="https://kivooeo.github.io/blog/if-let-guard/">
+            2026-01-25 => `if let guard` stabilizing path
+          </a>
+        </li>
         
         <li>
           <a href="https://kivooeo.github.io/blog/first/">
@@ -66,6 +120,67 @@
   </footer>
 
   
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
 </body>
 
 

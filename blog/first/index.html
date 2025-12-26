@@ -6,9 +6,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="Hi, last time I wrote about uncertainty. This time, I want to write about what came after. Here&#x27;s an update on my journey after that post - the progress, the difficulties, and where I ended up There, …">
 
-  <title> kivo&#x27;s blog </title>
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:title" content="first post">
+  <meta property="og:description" content="Hi, last time I wrote about uncertainty. This time, I want to write about what came after. Here&#x27;s an update on my journey after that post - the progress, the difficulties, and where I ended up There, …">
+  <meta property="og:url" content="https://kivooeo.github.io/blog/first/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="first post">
+  <meta name="twitter:description" content="Hi, last time I wrote about uncertainty. This time, I want to write about what came after. Here&#x27;s an update on my journey after that post - the progress, the difficulties, and where I ended up There, …">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>first post | kivo&#x27;s blog</title>
 
   
   <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
@@ -22,15 +42,31 @@
     
     <header>
       <div class="pull-right">
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">homepage</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
         [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
       </div>
       <div class="title">
-        <strong>kivo&#x27;s blog</strong>
+        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
       </div>
       <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+        </div>
+      </div>
     </header>
     
 
@@ -43,22 +79,65 @@
     <time datetime=" 2025-12-25" class="date" itemprop="datePublished">
       25 Dec 2025
     </time>
+    
+    <span class="reading-time">· ~10 min read · 1843 words</span>
+    
   </div>
+  
+  <details class="toc" open>
+    <summary>Contents</summary>
+    
+<ul>
+  
+  <li>
+    <a href="#there-where-it-all-ended-last-time">There, where it all ended last time</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-place-where-stars-align">The place where stars align</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-sum-of-all-that-happened">The sum of all that happened</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-idleness-that-never-rest">The idleness that never rest</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-unclenching">The Unclenching</a>
+    
+  </li>
+  
+  <li>
+    <a href="#to-read-the-stars-first-learn-the-dark">To read the stars, first learn the dark</a>
+    
+  </li>
+  
+</ul>
+
+  </details>
+  
   <div class="articleBody">
     <p>Hi, <a href="https://www.reddit.com/r/rust/comments/1nck01w/im_20_close_to_becoming_a_rust_compiler_team/">last time I wrote about uncertainty</a>. This time, I want to write about what came after. Here's an update on my journey after that post - the progress, the difficulties, and where I ended up</p>
-<h2 id="there-where-it-all-ended-last-time">There, where it all ended last time</h2>
+<h2 id="there-where-it-all-ended-last-time"><a class="zola-anchor" href="#there-where-it-all-ended-last-time" aria-label="Anchor link for: there-where-it-all-ended-last-time">There, where it all ended last time</a></h2>
 <p>After my last post, I received an overwhelming amount of support - both in comments and private messages. Thank you all so much for that. Several people also reached out with job offers, which I genuinely appreciated</p>
 <p>But none of them fit my situation in the end. Some were with established companies abroad that couldn't cover relocation costs because of sanctions - something I currently can't afford on my own. Others were in areas like crypto and web3: fields I respect, but not ones where my skills or interests truly lie</p>
 <p>So my only sponsor all this time was my mom - in fact, it's hard to say how much work she did for Rust without even realizing it</p>
-<h2 id="the-place-where-stars-align">The place where stars align</h2>
+<h2 id="the-place-where-stars-align"><a class="zola-anchor" href="#the-place-where-stars-align" aria-label="Anchor link for: the-place-where-stars-align">The place where stars align</a></h2>
 <p>Almost two months after my original post, <a href="https://github.com/rust-lang/team/pull/2059">I was added to the compiler team</a>. In the four months since my post, I've been working on the compiler steadily - usually 1-3 hours a day, though some bugs demand more. Recently, there was one day when I didn't open GitHub at all because I'd spent the day before and almost half the night until 4 am trying to understand <a href="https://github.com/rust-lang/rust/issues/149981">this bug</a></p>
 <p>When I finally fell asleep around 6 am and woke up about 10 hours later, I decided to take a break for the day. It's funny - I don't remember any other day when I didn't open GitHub</p>
 <p>Even on the day I was drafted into the army (a whole story of its own), I spent the morning <a href="https://github.com/rust-lang/rust/pull/149160#issuecomment-3560606816">reviewing a pull request</a> - literally just a few hours before they came for me. They took me to the distribution center, then brought me back home at 9 pm because I "didn't suit them"</p>
 <p>And I'm pretty sure that later that night, I went back to do some other reviews. If they hadn't brought me back, I would have returned to Rust in a year LMAO</p>
-<h2 id="the-sum-of-all-that-happened">The sum of all that happened</h2>
+<h2 id="the-sum-of-all-that-happened"><a class="zola-anchor" href="#the-sum-of-all-that-happened" aria-label="Anchor link for: the-sum-of-all-that-happened">The sum of all that happened</a></h2>
 <p>Let's talk about how the numbers have changed since the last post, I don't like this kind of metrics, but that's all we have I guess. At the time of writing, <a href="https://thanks.rust-lang.org/">thanks.rust-lang.org</a> shows 171 contributions, compared to 88 in my last post - a pretty big jump</p>
 <p>Despite that jump, my ranking didn't move as dramatically - from 360th to 235th all-time. I've noticed that the higher you climb, the slower it gets :) I probably won't reach the top 200 this year, but looking back at the progress - from my very first pull request to these numbers - still feels really good</p>
-<h2 id="the-idleness-that-never-rest">The idleness that never rest</h2>
+<h2 id="the-idleness-that-never-rest"><a class="zola-anchor" href="#the-idleness-that-never-rest" aria-label="Anchor link for: the-idleness-that-never-rest">The idleness that never rest</a></h2>
 <p>As you may have guessed, I was technically unemployed all this time - though I wouldn't call it that myself</p>
 <p>So what did I decide by the end of the year? Considering I need relatively little to live on (about $250-300 a month, since I don't pay rent), I decided to return to my previous job teaching IT to children. I left this job at the end of last school year, but it's a good fit for my situation</p>
 <p>The job takes only about two days per a week. The salary of $550–600 gives me enough to live on and even save a little for things I enjoy, plus plenty of time to work on the compiler. And the job itself:</p>
@@ -74,14 +153,14 @@
 </li>
 </ol>
 <p>The only downside is that it's not scalable in the conventional sense. But since I'm not chasing big numbers - just stability and the opportunity to keep contributing - I think this is a good solution</p>
-<h2 id="the-unclenching">The Unclenching</h2>
+<h2 id="the-unclenching"><a class="zola-anchor" href="#the-unclenching" aria-label="Anchor link for: the-unclenching">The Unclenching</a></h2>
 <p>This will be the last chapter before Q&amp;A</p>
 <p>It's the end of the year now, and I want to say this has probably been the most emotionally difficult year for me - the army, finances, work, potential relocations, instability</p>
 <p>In about three weeks I'll turn 21</p>
 <p>For now, I think I had found an opportunity to work on what I like and make it financially stable without sacrificing the part of myself that wants to work on Rust</p>
 <p>For those who've asked - I've set up a <a href="/sponsor">sponsor page</a> with the options currently available to me, only crypto :(</p>
 <p>Thank you all for this year. Happy New Year, everyone!</p>
-<h2 id="to-read-the-stars-first-learn-the-dark">To read the stars, first learn the dark</h2>
+<h2 id="to-read-the-stars-first-learn-the-dark"><a class="zola-anchor" href="#to-read-the-stars-first-learn-the-dark" aria-label="Anchor link for: to-read-the-stars-first-learn-the-dark">To read the stars, first learn the dark</a></h2>
 <p>Q: I want to contribute to the compiler, but it's overwhelming. Where do I start?</p>
 <p>A: Don't think about the size - just find something specific that interests you and start there</p>
 <hr />
@@ -90,7 +169,7 @@
 <p>And here's slightly controversial advice: you can use LLMs to understand code snippets. If you're staring at a function and have no idea what it does, an LLM can usually explain it. Ask "why does this work?" or "what is this doing?" But - and this is critical - use it to <em>understand</em> code, not to <em>write</em> code for you. Don't submit generated pull requests that you don't fully understand. That wastes reviewers' time and doesn't help you learn</p>
 <hr />
 <p>Q: What did you learn about sustaining motivation over months of unpaid work?</p>
-<p>A: In my case, staying motivated was probably the least of my problems, to be honest. Here are some other reasons (not in order of importance):</p>
+<p>A: In my case, staying motivated was probably the least of my problems, to be honest. Here are some reasons (not in order of importance):</p>
 <ol>
 <li>
 <p>the tasks are very interesting</p>
@@ -135,7 +214,7 @@
 <p>A: Two things, actually</p>
 <ol>
 <li>
-<p>the people who tried to find negativity in my situation</p>
+<p>people who tried to spread negativity in the comments</p>
 </li>
 <li>
 <p>the overwhelming support. I really didn't expect so many people to reach out with genuine encouragement and offers to help. The community response was beyond anything I imagined</p>
@@ -166,7 +245,16 @@ The stars remain in the keeping of the gods
 <p>A: If I learned anything this year, it's that consistency beats intensity - and that meaning is sometimes enough to keep going. That even small but steady steps are better than rare but wide ones</p>
 
   </div>
+  
+  <div class="post-end">
+    <img class="post-end-cat" src="https://kivooeo.github.io/cat.gif" alt="A cat" width="140" height="140">
+    <p><code>you reached the end &lt;3</code></p>
+  </div>
+  
 </article>
+
+<button id="to-contents" class="to-contents" type="button" aria-label="Back to contents" title="Back to contents" hidden>↑ contents</button>
+
 
     </main>
   </div>
@@ -181,6 +269,67 @@ The stars remain in the keeping of the gods
   </footer>
 
   
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
 </body>
 
 

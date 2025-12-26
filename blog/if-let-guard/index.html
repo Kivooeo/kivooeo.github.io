@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="Hi all! In this blog post, I&#x27;m going to talk about a feature I&#x27;ve been working on stabilizing The original tracking issue was created more than 7 years ago I&#x27;ve been using Rust for less than 7 years, …">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:title" content="`if let guard` stabilizing path">
+  <meta property="og:description" content="Hi all! In this blog post, I&#x27;m going to talk about a feature I&#x27;ve been working on stabilizing The original tracking issue was created more than 7 years ago I&#x27;ve been using Rust for less than 7 years, …">
+  <meta property="og:url" content="https://kivooeo.github.io/blog/if-let-guard/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="`if let guard` stabilizing path">
+  <meta name="twitter:description" content="Hi all! In this blog post, I&#x27;m going to talk about a feature I&#x27;ve been working on stabilizing The original tracking issue was created more than 7 years ago I&#x27;ve been using Rust for less than 7 years, …">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>`if let guard` stabilizing path | kivo&#x27;s blog</title>
+
+  
+  <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
+  
+  
+</head>
+
+<body>
+  <div class="content">
+    
+    
+    <header>
+      <div class="pull-right">
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
+      </div>
+      <div class="title">
+        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
+      </div>
+      <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+        </div>
+      </div>
+    </header>
+    
+
+    <main>
+      
+<article>
+  <div class="headline">
+    <h1>`if let guard` stabilizing path</h1>
+    <div class="border"></div>
+    <time datetime=" 2026-01-25" class="date" itemprop="datePublished">
+      25 Jan 2026
+    </time>
+    
+    <span class="reading-time">· ~9 min read · 1680 words</span>
+    
+  </div>
+  
+  <details class="toc" open>
+    <summary>Contents</summary>
+    
+<ul>
+  
+  <li>
+    <a href="#what-is-this-feature-even-about">What is this feature even about?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#let-chains">Let chains</a>
+    
+  </li>
+  
+  <li>
+    <a href="#when-this-feature-will-be-out">When this feature will be out?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#faq-section">FAQ section</a>
+    
+    
+<ul>
+  
+  <li>
+    <a href="#why-are-let-chains-in-if-let-guard-stable-on-all-editions">Why are let chains in if let guard stable on all editions?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#what-was-the-drop-order-bug-that-was-fixed">What was the drop order bug that was fixed?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#what-is-the-current-drop-order-behavior">What is the current drop order behavior?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#performance-question">Performance question</a>
+    
+  </li>
+  
+  <li>
+    <a href="#shadowing">Shadowing</a>
+    
+  </li>
+  
+  <li>
+    <a href="#irrefutable-patterns">Irrefutable Patterns</a>
+    
+  </li>
+  
+</ul>
+
+    
+  </li>
+  
+  <li>
+    <a href="#conclusion-personal-note">Conclusion &amp; Personal Note</a>
+    
+  </li>
+  
+</ul>
+
+  </details>
+  
+  <div class="articleBody">
+    <p>Hi all!</p>
+<p>In this blog post, I'm going to talk about a feature I've been working on stabilizing</p>
+<p>The <a href="https://github.com/rust-lang/rust/issues/51114">original tracking issue</a> was created more than 7 years ago</p>
+<p>I've been using Rust for less than 7 years, so I’ll relay what I’ve heard: the feature was stabilized at first, but some drop-order bugs appeared, and it was quickly destabilized. I guess it was then abandoned for a long time, currently, all the drop order bugs have been fixed, and it works correctly</p>
+<p>I encountered some code where I tried to use <code>if let guard</code> and then compiler says</p>
+<blockquote>
+<p>hey, that's not stable, what are you trying to do here?</p>
+</blockquote>
+<p>and I was like</p>
+<blockquote>
+<p>eeh, what do you mean not stable, this is so obvious and... simple, like, how is this different from an <code>if guard</code></p>
+</blockquote>
+<p>After that, I started investigating this feature, this was at the very beginning of my contributing journey somewhere around end of April</p>
+<p>And I got a lot of help from another Rust team member <a href="https://github.com/est31">est31</a>, who, not long before I started looking into this, had finished stabilizing <code>let chains</code> which was a major stabilization for Rust and one of the most requested features overall</p>
+<p>As you can tell from the post's title, it's about the <code>if let guard</code> feature, which I think is a very pretty one :3</p>
+<h3 id="what-is-this-feature-even-about"><a class="zola-anchor" href="#what-is-this-feature-even-about" aria-label="Anchor link for: what-is-this-feature-even-about">What is this feature even about?</a></h3>
+<p>This is a pretty straightforward feature at first sight, I mean very straightforward, it's basically allows you to use <code>let</code> patterns in match guards, like this</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">let x = &quot;42&quot;;
+let y = Some(2);
+
+match x.parse::&lt;i32&gt;() {
+    Ok(s) if let Some(y) = y =&gt; (),
+    Ok(s) =&gt; (),
+    _ =&gt; (),
+}
+</code></pre>
+<p>This simple snippet shows what the feature does - nothing complicated, right? So roughly without this feature (there are many ways to rewrite it in Rust, I just pick one that is closest to the code above and what I'd use)</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">let x = &quot;42&quot;;
+let y = Some(2);
+
+match x.parse::&lt;i32&gt;() {
+    Ok(s) =&gt; {
+        if let Some(y) = y {
+            &#x2F;&#x2F; first branch
+        } else {
+            &#x2F;&#x2F; second branch
+        }
+    }
+    _ =&gt; (),
+}
+</code></pre>
+<p>Personally I don't like this, I never liked this, just because there is cases where you really don't want to create a block in match arm and just return value</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">struct A {
+    x: i32,
+    y: i32,
+    related_points: Option&lt;Vec&lt;A&gt;&gt;,
+}
+
+fn main() {
+    let a = A {
+        x: 2,
+        y: 3,
+        related_points: Some(vec![]),
+    };
+
+    let x = Some(42);
+
+    match x {
+        Some(x)
+            if let A { related_points, .. } = a
+                &amp;&amp; let Some(points) = related_points =&gt; points.len()
+        _ =&gt; 1,
+    };
+}
+
+</code></pre>
+<p>So, currently you are forced to write a block like this</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match x {
+    Some(x) =&gt; {
+        if let A { related_points, .. } = a
+            &amp;&amp; let Some(points) = related_points
+        {
+            points.len()
+        } else {
+            1
+        }
+    }
+    _ =&gt; 1,
+}
+</code></pre>
+<p>As I said before, I don't like this, like, completely</p>
+<p>As you might have already seen, <code>if let guard</code> could use <code>let chains</code>...</p>
+<h3 id="let-chains"><a class="zola-anchor" href="#let-chains" aria-label="Anchor link for: let-chains">Let chains</a></h3>
+<p>Yes, you get it right, this feature is fully compatible with <code>let chains</code></p>
+<p><code>let chains</code> are actually one of my favorite Rust features, even though I started learning Rust only few years ago, I can definitely tell that <code>let chains</code> were my most used feature since then, I do really <em>love</em> patterns and hope you too!</p>
+<p>So back to <code>let chains</code> in <code>if let guard</code>, you might be wondering, what's so special about them?</p>
+<p>Here’s the answer: <code>let chains</code> were originally restricted to Rust 2024+ editions, so using them in edition 2021 (or earlier) would give an error</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">error: let chains are only allowed in Rust 2024 or later
+ --&gt; src&#x2F;main.rs:4:8
+  |
+4 |     if let Some(x) = Some(42) &amp;&amp; x.is_positive() {
+  | 
+</code></pre>
+<p>This will not work as we just tried above, but you already have seen the possibility of using <code>let chains</code> in <code>if let guard</code></p>
+<p>A few questions might come to mind:</p>
+<ol>
+<li>Does that mean that <code>if let guard</code> going to be stabilized in edition 2024+?</li>
+<li>Or does it mean that I could use <code>if let guard</code> in all editions, but using <code>let chains</code> in <code>if let guard</code> will be restricted</li>
+</ol>
+<p>Sooo... my answer will be pretty short and direct: using <code>let chains</code> in <code>if let guard</code> will be allowed in all editions, which means</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">fn main() {
+    match 0 {
+        _ if let Some(x) = Some(42) &amp;&amp; x.is_negative() =&gt; println!(&quot;wow!&quot;),
+    }
+}
+</code></pre>
+<p>This code will work perfectly fine in all editions even though it contains <code>let chains</code></p>
+<p>Important note here:</p>
+<p>Currently, if you try to run this code in edition 2021 or lower, it will give you an error, about <code>let chains</code>, just because, when we are parsing <code>if let guard</code> in compiler we do have a <a href="https://github.com/rust-lang/rust/blob/4d38622e8bec00a9001264c4e9f4723fceca23cb/compiler/rustc_parse/src/parser/expr.rs#L3459">check</a> for <code>let chains</code> to gave such error,</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">if has_let_expr(&amp;cond) {
+    let span = if_span.to(cond.span);
+    self.psess.gated_spans.gate(sym::if_let_guard, span);
+}
+</code></pre>
+<p>But don't worry, this will be deleted with stabilization, it's fine that it doesn't work now, it will work as stabilized</p>
+<hr />
+<p>This is snippet from my code that I wrote to fix a diagnostic problem using both of these features, we are using a lot of unstable features in compiler so which is why I was able to do this,</p>
+<p>Btw, if you aren't comfortable with understanding this code, which is 100% fine, I'm not waiting for the reader to be a rustc developer, just try to see the differences in form itself, the semantics are pretty much the same</p>
+<p>The problem was that an <code>Op::AssignOp(assign_op)</code> branch already existed and extending it for this new check would have been messy, since it wasn't just a few lines, so it would have dramatically bloated the original branch, the solution was to create a separate branch and do all the checks right in the match guard:</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">Op::AssignOp(assign_op)
+    if assign_op.node == hir::AssignOpKind::AddAssign
+        &amp;&amp; let hir::ExprKind::Binary(bin_op, left, right) = &amp;lhs_expr.kind
+        &amp;&amp; bin_op.node == hir::BinOpKind::And
+        &amp;&amp; crate::op::contains_let_in_chain(left)
+        &amp;&amp; let hir::ExprKind::Path(hir::QPath::Resolved(_, path)) =
+            &amp;right.kind
+        &amp;&amp; matches!(path.res, hir::def::Res::Local(_)) =&gt;
+{
+    &#x2F;&#x2F; give a nice user friendly error here :3
+}
+</code></pre>
+<p>Actually, for those who wonder how the same code will looks without all this stuff is... this...</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">Op::AssignOp(assign_op) =&gt; {
+    if assign_op.node == hir::AssignOpKind::AddAssign {
+        if let hir::ExprKind::Binary(bin_op, left, right) = &amp;lhs_expr.kind {
+            if bin_op.node == hir::BinOpKind::And {
+                if crate::op::contains_let_in_chain(left) {
+                    if let hir::ExprKind::Path(hir::QPath::Resolved(_, path)) =
+                        &amp;right.kind
+                    {
+                        if matches!(path.res, hir::def::Res::Local(_)) {
+                            &#x2F;&#x2F; give an nice user friendly error here :3
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<p>This is far from perfection! So please use both of these nice features to get closer to it ^^,</p>
+<h3 id="when-this-feature-will-be-out"><a class="zola-anchor" href="#when-this-feature-will-be-out" aria-label="Anchor link for: when-this-feature-will-be-out">When this feature will be out?</a></h3>
+<p>Actually, in perfect scenario, I'd say that this feature will be stable at 1.95, which is very optimistic. There is only one blocker left: documentation, so as far as I can tell, it will be FCP'ed and merged after the documentation is merged, in less optimistic scenario I think it will be ready to 1.96, but, to be honest both of these scenarios are very close and mostly important is very realistic, because all the concerns about drop order have been resolved, there is nothing blocking it</p>
+<h1 id="faq-section"><a class="zola-anchor" href="#faq-section" aria-label="Anchor link for: faq-section">FAQ section</a></h1>
+<p>This section will answer some of the questions that might come up in your head</p>
+<h3 id="why-are-let-chains-in-if-let-guard-stable-on-all-editions"><a class="zola-anchor" href="#why-are-let-chains-in-if-let-guard-stable-on-all-editions" aria-label="Anchor link for: why-are-let-chains-in-if-let-guard-stable-on-all-editions">Why are let chains in if let guard stable on all editions?</a></h3>
+<p>That's a really good question! It's hard to say with complete confidence since I wasn't working on the original <code>let chains</code> stabilization and I'm not deeply familiar with that part of the compiler. But from what I've learned from the team: <code>let chains</code> in <code>if let guard</code> don't suffer from the drop order issues that affect regular <code>if chains</code> because there's no <code>else</code> block like in <code>if let</code> has that can cause scoping complications.</p>
+<p>To stabilize <code>let chains</code> for Edition 2024, the <code>if_let_rescope</code> feature was introduced to fix drop order behavior in contexts with <code>else</code> blocks. Match guards never had this problem—they're just boolean conditions without an <code>else</code> branch, so temporaries already had predictable scoping. Since <code>if let guard</code> already behaves correctly without needing the rescoping fix, it works consistently across all editions.</p>
+<h3 id="what-was-the-drop-order-bug-that-was-fixed"><a class="zola-anchor" href="#what-was-the-drop-order-bug-that-was-fixed" aria-label="Anchor link for: what-was-the-drop-order-bug-that-was-fixed">What was the drop order bug that was fixed?</a></h3>
+<p>Well, I can't tell about previous stabilization, since not much is known about it, but I can speak about current one</p>
+<p>So in current stabilization, right after it was FCP'ed and I had fixed all (30+) the last nits, and it was sitting in the queue to be merged, <a href="https://github.com/dianne">dianne</a> raised a very good point with drop order,</p>
+<p>I will leave <a href="https://github.com/rust-lang/rust/pull/141295#issuecomment-2968975596">her comment</a> here, just in case someone wants to see it for themselves, but I will explain this a little, honestly this comment is pretty well written as it, but here's the problem:</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match SignificantDrop(0) {
+    x if let y = SignificantDrop(&amp;x) =&gt; {}
+    _ =&gt; unreachable!(),
+}
+</code></pre>
+<p><code>x</code> drops before <code>y</code> which is not obvious and maybe incorrect sometimes, and another case shows the actual problem of inconsistent drop order pretty well</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match [LogDrop(o, 2), LogDrop(o, 1)] {
+    [x, y] if let z = LogDrop(o, 3) =&gt; {}
+    _ =&gt; unreachable!(),
+}
+</code></pre>
+<blockquote>
+<p>First, let me explain how to read this, it exactly show drop order by numbers, so <code>LogDrop(o, 1)</code> will drop first, <code>LogDrop(o, 2)</code> second and so on</p>
+</blockquote>
+<p>So here, it will drop everything in the following order <code>y</code> -&gt; <code>x</code> -&gt; <code>z</code>, which is also not correct, you would expect right to left drop order, now, thanks to dianne's efforts, it works as intended and expected: <code>z</code> -&gt; <code>y</code> -&gt; <code>x</code></p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match [LogDrop(o, 3), LogDrop(o, 2)] {
+    [x, y] if let z = LogDrop(o, 1) =&gt; {}
+    _ =&gt; (),
+}
+</code></pre>
+<blockquote>
+<p>This behavior was fixed by dianne in <a href="https://github.com/rust-lang/rust/pull/143376">this pull request</a></p>
+</blockquote>
+<h3 id="what-is-the-current-drop-order-behavior"><a class="zola-anchor" href="#what-is-the-current-drop-order-behavior" aria-label="Anchor link for: what-is-the-current-drop-order-behavior">What is the current drop order behavior?</a></h3>
+<p>So yes, as you might have seen above, the drop order is correct and right to left order</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match [LogDrop(o, 5), LogDrop(o, 4)] {
+    [x, y]
+        if let z = LogDrop(o, 3)
+            &amp;&amp; let w = LogDrop(o, 2)
+            &amp;&amp; let v = LogDrop(o, 1) =&gt; {}
+    _ =&gt; (),
+}
+</code></pre>
+<p>This is consistent and stable, so there is nothing to worry about. There was also a bug with <code>pin!()</code> that was found also during the limit testing of <code>if let guard</code> by <a href="https://github.com/theemathas">theemathas</a>, so this bug looked like this and it wasn't necessarily a bug in the <code>if let guard</code>, but <code>let chains</code> one</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    if let x = LoudDrop(&quot;0&quot;)
+        &amp;&amp; let y = pin!(LoudDrop(&quot;1&quot;))
+        &amp;&amp; let z = pin!(LoudDrop(&quot;2&quot;))
+        &amp;&amp; let w = LoudDrop(&quot;3&quot;)
+    {}
+    &#x2F;&#x2F; 3
+    &#x2F;&#x2F; 0
+    &#x2F;&#x2F; 2
+    &#x2F;&#x2F; 1
+</code></pre>
+<p>And once again, this is not what you would expect, but yeah, on current stable version this is already fixed and working as intented</p>
+<blockquote>
+<p>Also was fixed by dianne <a href="https://github.com/rust-lang/rust/pull/145342">here</a></p>
+</blockquote>
+<h3 id="performance-question"><a class="zola-anchor" href="#performance-question" aria-label="Anchor link for: performance-question">Performance question</a></h3>
+<p>Q: Does this compile to the same code as using a block, and/or does it have any overhead from creating a block with an <code>if let</code>?</p>
+<p>Well, this is a reasonable question and concern, but answer is no, both of these code examples compile to the same assembly, have the same semantics, and the same drop order/scope behavior. So yeah, I'd say they are identical</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    match 0 {
+        _ if let Some(new_x) = Some(2) &amp;&amp; new_x &gt; 150 =&gt; x = new_x,
+        _ =&gt; x = 1,
+    }
+</code></pre>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    match 0 {
+        _ =&gt; {
+            if let Some(new_x) = Some(2) &amp;&amp; new_x &gt; 150  {
+                x = new_x;
+            } else {
+                x = 1;
+            }
+        }
+    }
+</code></pre>
+<h3 id="shadowing"><a class="zola-anchor" href="#shadowing" aria-label="Anchor link for: shadowing">Shadowing</a></h3>
+<p>Quick quiz: what will this print?</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">match Some(4) {
+    x if let Some(x) = Some(2) &amp;&amp; let Some(x) = Some(5) =&gt; println!(&quot;{x}&quot;),
+    _ =&gt; panic!()
+}
+</code></pre>
+<p>if you answered 5, you are correct, so yeah, it will just shadow all previous <code>x</code>'s</p>
+<h3 id="irrefutable-patterns"><a class="zola-anchor" href="#irrefutable-patterns" aria-label="Anchor link for: irrefutable-patterns">Irrefutable Patterns</a></h3>
+<p>The compiler will correctly understand if a pattern is irrefutable, so like in this example</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    match Some(()) {
+        Some(x) if let () = x =&gt; {}
+        _ =&gt; {}
+    }
+</code></pre>
+<p>It will give you a nice warning :3</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">warning: irrefutable `if let` guard pattern
+  --&gt; src&#x2F;main.rs:41:20
+   |
+41 |         Some(x) if let () = x =&gt; {}
+   |                    ^^^^^^^^^^
+   |
+   = note: this pattern will always match, so the guard is useless
+   = help: consider removing the guard and adding a `let` inside the match arm
+   = note: `#[warn(irrefutable_let_patterns)]` on by default
+</code></pre>
+<h1 id="conclusion-personal-note"><a class="zola-anchor" href="#conclusion-personal-note" aria-label="Anchor link for: conclusion-personal-note">Conclusion &amp; Personal Note</a></h1>
+<p>I don't like conclusions because they usually just repeat everything you already read, so I'll keep this short: the feature is nice, the blockers are resolved, around 1.95 hopefully!</p>
+<p>That's all! If you like what I'm doing and want to ✨ support ✨ my work, I have a <a href="/sponsor">sponsor page</a>. I also just updated it with information on how you can support me without crypto (using crypto, yes xD)</p>
+<p>Working on long-running compiler takes time and focus - which brings me to a small personal note</p>
+<p>I'm planning to move to my partner's city soon. While I have the funds saved up, any support to make this transition smoother and less stressful would mean the world to me</p>
+<p>With heartfelt thanks to the Rust community!</p>
+
+  </div>
+  
+  <div class="post-end">
+    <img class="post-end-cat" src="https://kivooeo.github.io/cat.gif" alt="A cat" width="140" height="140">
+    <p><code>you reached the end &lt;3</code></p>
+  </div>
+  
+</article>
+
+<button id="to-contents" class="to-contents" type="button" aria-label="Back to contents" title="Back to contents" hidden>↑ contents</button>
+
+
+    </main>
+  </div>
+
+  <footer>
+    
+    <p> <a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">Kivooeo</a> &mdash; <a
+        href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
+      theme</p>
+    
+  </footer>
+
+  
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
+      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
+      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
+</body>
+
+
+</html>
