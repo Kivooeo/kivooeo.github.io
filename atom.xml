@@ -1,0 +1,911 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>kivo&#x27;s blog</title>
+    <link rel="self" type="application/atom+xml" href="https://kivooeo.github.io/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://kivooeo.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-14T00:00:00+00:00</updated>
+    <id>https://kivooeo.github.io/atom.xml</id>
+    <entry xml:lang="en">
+        <title>part 1: Tackling an `E-needs-test` issue</title>
+        <published>2026-02-14T00:00:00+00:00</published>
+        <updated>2026-02-14T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/blog/e-needs-test/"/>
+        <id>https://kivooeo.github.io/blog/e-needs-test/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/blog/e-needs-test/">&lt;p&gt;In this part, I want to cover how I would tackle an issue labeled &lt;code&gt;E-needs-test&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;ll also be mentoring a Google Summer of Code project this year, and it&#x27;s test-suite related - so if you&#x27;re interested, you can read more about it &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;google-summer-of-code?tab=readme-ov-file#reorganisation-of-testsuiissues&quot;&gt;here&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Given that this isn&#x27;t a very time-consuming task, I expect this post won&#x27;t be very long. I&#x27;ll document everything as I go - you&#x27;ll see my actual thought process and decisions in real-time&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;selecting-and-studying-an-issue&quot;&gt;Selecting and Studying an Issue&lt;&#x2F;h2&gt;
+&lt;p&gt;Let&#x27;s head over to &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-needs-test&quot;&gt;GitHub&lt;&#x2F;a&gt; to search for issues. Looking at the list, I&#x27;ll pick the first available issue. I don&#x27;t think it will make a big difference, and to be honest, picking one at random for content isn&#x27;t a bad idea either&lt;&#x2F;p&gt;
+&lt;p&gt;So I&#x27;ve selected an &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&quot;&gt;issue&lt;&#x2F;a&gt;, now let&#x27;s see what&#x27;s going on. According to the issue description, this code used to cause the compiler to panic when trying to compile it. However, according to the last comment, the problem was fixed in one of the pull requests, even though the issue itself is still open. Therefore, we want to add a test using this code example that used to panic, to lock in the new correct behavior and ensure that it now works as expected&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;tackling-the-problem&quot;&gt;Tackling the Problem&lt;&#x2F;h2&gt;
+&lt;p&gt;So, now that we&#x27;ve looked into the issue&#x27;s context, let&#x27;s start taking action. Let&#x27;s open a code editor, and navigate to forked repository, and create a new branch for pull request. I&#x27;m just going to do what I normally do (to be honest, I still don&#x27;t feel very confident using Git, so I might do something a bit odd or not the usual way):&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;If you&#x27;re also not confident with Git, that&#x27;s totally fine - the commands I show here work reliably, and the worst case is that reviewers will help you fix any Git issues&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ git checkout -b add-regression-test-1
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And also, to ensure I&#x27;ve a clean and up-to-date branch, I run:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ git fetch upstream
+&lt;&#x2F;span&gt;&lt;span&gt;$ git reset --hard upstream&#x2F;main
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Fair warning: &lt;code&gt;reset --hard&lt;&#x2F;code&gt; will discard all your uncommitted local changes. Make sure you don&#x27;t have any unsaved work before running this command. I always verify this first, which is why I use it safely&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;This fetches the latest changes from the main Rust repository and resets branch to match it exactly&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Now let&#x27;s figure out where to add a new test. Since it&#x27;ll be a UI test, I should find the appropriate subdirectory to place it. Since the issue was titled &quot;resolve: &lt;code&gt;no entry found for key&lt;&#x2F;code&gt;&quot;, it&#x27;s clear this is a name resolution problem, which means the test should go in the resolve directory&lt;&#x2F;p&gt;
+&lt;p&gt;Also a very small tip on how can you determine the directory, because in your case it might not be specified in the issue&#x27;s title, in that case feel free to look at labels on that issue, it&#x27;s very likely do have labels like &lt;code&gt;A-resolve&lt;&#x2F;code&gt; or &lt;code&gt;A-macros&lt;&#x2F;code&gt; like in my case, and you can search for this words in &lt;code&gt;tests&#x2F;ui&#x2F;README.md&lt;&#x2F;code&gt;, also, try to use your own intuition to understand what is tested in that test (sometimes it&#x27;s not very obvious, I completely relate that part)&lt;&#x2F;p&gt;
+&lt;p&gt;Let&#x27;s open &lt;code&gt;tests&#x2F;ui&#x2F;README.md&lt;&#x2F;code&gt; and search for &quot;resolve&quot;, to see what&#x27;s available:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ code tests&#x2F;ui&#x2F;README.md
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I use Ctrl+F to search for &#x27;resolve&#x27;. Aha, there it is: there&#x27;s a directory with the exact name I need:&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;h2 id=&quot;tests-ui-resolve-name-resolution&quot;&gt;&lt;code&gt;tests&#x2F;ui&#x2F;resolve&#x2F;&lt;&#x2F;code&gt;: Name resolution&lt;&#x2F;h2&gt;
+&lt;p&gt;See &lt;a href=&quot;https:&#x2F;&#x2F;rustc-dev-guide.rust-lang.org&#x2F;name-resolution.html&quot;&gt;Name resolution | rustc-dev-guide&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;That&#x27;s exactly what I need! Now let&#x27;s think of a name for the test. It should be short and reflect what&#x27;s being tested. To help with this, let&#x27;s look at the code for the future test, which is taken from the example:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;#![&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;feature&lt;&#x2F;span&gt;&lt;span&gt;(decl_macro)]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;macro_rules! &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;exported &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    () &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        #[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;macro_export&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;macro_rules! &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;exported &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            () &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{};
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    };
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span&gt;inner1::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;exported!&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;mod &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;inner1 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;pub &lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#932b1e;color:#fdf4c1;&quot;&gt;macro&lt;&#x2F;span&gt;&lt;span&gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;exported&lt;&#x2F;span&gt;&lt;span&gt;() {}
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This is some really convoluted nested macro code! Honestly, I have no clue what could have gone wrong here. I tried reading yaahc&#x27;s comments on the issue, but they didn&#x27;t give me much insight, and I must admit I&#x27;m hearing about the &lt;code&gt;decl_macro&lt;&#x2F;code&gt; feature almost for the first time&lt;&#x2F;p&gt;
+&lt;p&gt;I honestly don&#x27;t fully understand what this code does, but for adding a regression test, I don&#x27;t need to - the bug was already fixed, I just need to make sure this code compiles now&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;ll make a relatively generic test name and adding the issue number at the end. Something like &lt;code&gt;exported-macro-in-mod-147958&lt;&#x2F;code&gt; - honestly, I just wrote down what I see in the test itself&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ touch tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
+&lt;&#x2F;span&gt;&lt;span&gt;$ code tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;So I just paste the code above into this file. The only difference is that I&#x27;ll add a directive at the very top of the test:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F;@ check-pass
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;In UI tests, if you don&#x27;t specify a directive like &lt;code&gt;&#x2F;&#x2F;@ check-pass&lt;&#x2F;code&gt;, the harness assumes the test should produce errors and compares against a .stderr file&lt;&#x2F;p&gt;
+&lt;p&gt;I won&#x27;t go into detail about test directives here, because there&#x27;s already good material on this topic. My focus is a bit different, but I highly recommend checking out the &lt;a href=&quot;https:&#x2F;&#x2F;rustc-dev-guide.rust-lang.org&#x2F;tests&#x2F;directives.html&quot;&gt;Rustc dev guide on directives&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Okay, now that the test is ready, let&#x27;s try running it:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ .&#x2F;x test tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This will start building the compiler and any necessary tools. By the way, since I expect no errors to occur, a &lt;code&gt;.stderr&lt;&#x2F;code&gt; file shouldn&#x27;t be generated, so I didn&#x27;t use the &lt;code&gt;--bless&lt;&#x2F;code&gt; flag (the one that generates the error output file)&lt;&#x2F;p&gt;
+&lt;p&gt;The test didn&#x27;t pass...&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;text&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-text &quot;&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;&lt;span&gt;running 1 tests
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;[ui] tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs ... F
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;failures:
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;---- [ui] tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs stdout ----
+&lt;&#x2F;span&gt;&lt;span&gt;Saved the actual stderr to `&#x2F;home&#x2F;gh-Kivooeo&#x2F;r&#x2F;rust&#x2F;build&#x2F;aarch64-unknown-linux-gnu&#x2F;test&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958&#x2F;exported-macro-in-mod-147958.stderr`
+&lt;&#x2F;span&gt;&lt;span&gt;normalized stderr:
+&lt;&#x2F;span&gt;&lt;span&gt;error[E0601]: `main` function not found in crate `exported_macro_in_mod_147958`
+&lt;&#x2F;span&gt;&lt;span&gt;  --&amp;gt; $DIR&#x2F;exported-macro-in-mod-147958.rs:15:2
+&lt;&#x2F;span&gt;&lt;span&gt;   |
+&lt;&#x2F;span&gt;&lt;span&gt;LL | }
+&lt;&#x2F;span&gt;&lt;span&gt;   |  ^ consider adding a `main` function to `$DIR&#x2F;exported-macro-in-mod-147958.rs`
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;error: aborting due to 1 previous error
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;For more information about this error, try `rustc --explain E0601`.
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Ah, I forgot to add a &lt;code&gt;main&lt;&#x2F;code&gt; function. Of course, I could have added a directive like &lt;code&gt;&#x2F;&#x2F;@ compile-flags: --crate-type lib&lt;&#x2F;code&gt; to indicate this is a library, but I&#x27;m more used to just adding an empty &lt;code&gt;main&lt;&#x2F;code&gt; function&lt;&#x2F;p&gt;
+&lt;p&gt;Alright, that&#x27;s it. I can also run &lt;code&gt;.&#x2F;x test tidy&lt;&#x2F;code&gt; just to make sure there&#x27;s no trailing whitespace and that I didn&#x27;t forget a newline at the end of the file&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;tidy checks formatting, whitespace, file placement, and other repository conventions&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Now I can prepare the pull request. To do that I ran the following commands:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&amp;gt; git add .
+&lt;&#x2F;span&gt;&lt;span&gt;user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&amp;gt; git commit -m &amp;quot;add regression test&amp;quot;
+&lt;&#x2F;span&gt;&lt;span&gt;user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&amp;gt; git push --force-with-lease origin add-regression-test-1 
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Note: &lt;code&gt;--force-with-lease&lt;&#x2F;code&gt; isn&#x27;t needed for a new branch, but I use it out of habit&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;I think everything is ready, so let&#x27;s go to GitHub. I&#x27;ll open my fork, switch to the branch I created for this pull request, and click the big &quot;Contribute -&amp;gt; Open pull request&quot; button&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;ll keep the description minimal, since there is not much to tell about this PR. I titled it &quot;add regression test for 147958&quot; and I just left the description as &quot;fixes #147958&quot;, so that the issue will be closed after merging the pull request&lt;&#x2F;p&gt;
+&lt;p&gt;Since I don&#x27;t know who should do the review, I left it like that. Usually, you can write something like &lt;code&gt;r? team&lt;&#x2F;code&gt; (e.g. &lt;code&gt;r? compiler&lt;&#x2F;code&gt;) or a specific member like &lt;code&gt;r? Kivooeo&lt;&#x2F;code&gt;. If you don&#x27;t specify anyone, rustbot will pick the most appropriate free reviewer in rotation&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;And that&#x27;s it. Pull request was created &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;152732&quot;&gt;here&lt;&#x2F;a&gt;. Rustbot assigned TaKO8Ki as the reviewer, so now I wait for review. I&#x27;m not 100% sure about this test since I&#x27;m not familiar with this feature, but I fully expect it to be approved. You can also check the reviewer&#x27;s GitHub profile to see their recent activity - I often do this myself, although I don&#x27;t really have any specific expectations. Reviews can take up to two weeks before you can re-request a review if needed&lt;&#x2F;p&gt;
+&lt;p&gt;Given the size and simplicity of this PR, I&#x27;m expecting a pretty quick approval. The most likely outcome is that another contributor will approve it or suggest corrections&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;an-oversight&quot;&gt;An Oversight&lt;&#x2F;h2&gt;
+&lt;p&gt;About 30 minutes after I created the pull request, I remembered that I forgot to add a most important comment&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282828;color:#fdf4c1aa;&quot;&gt;&lt;code&gt;&lt;span&gt;&#x2F;&#x2F;! Regression test for &amp;lt;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&amp;gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;On top of the test, so in future it would be easier to navigate for original issue, let&#x27;s quickly fix it!&lt;&#x2F;p&gt;
+&lt;p&gt;So all I do is just add this comment, final test looks this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F;! Regression test for &amp;lt;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&amp;gt;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F;@ check-pass
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;#![&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;feature&lt;&#x2F;span&gt;&lt;span&gt;(decl_macro)]
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;macro_rules! &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;exported &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    () &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        #[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;macro_export&lt;&#x2F;span&gt;&lt;span&gt;]
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;macro_rules! &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;exported &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            () &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{};
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    };
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span&gt;inner1::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;exported!&lt;&#x2F;span&gt;&lt;span&gt;();
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;mod &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;inner1 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;pub &lt;&#x2F;span&gt;&lt;span style=&quot;background-color:#932b1e;color:#fdf4c1;&quot;&gt;macro&lt;&#x2F;span&gt;&lt;span&gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;exported&lt;&#x2F;span&gt;&lt;span&gt;() {}
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;() {}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Here I have an empty &lt;code&gt;main&lt;&#x2F;code&gt; function, and a comment with link to the issue, btw, worth noting that while many regression tests don&#x27;t include this comment (and that&#x27;s totally okay), I personally find it really helpful to have the direct link. I also pretty often see comment like:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282828;color:#fdf4c1aa;&quot;&gt;&lt;code&gt;&lt;span&gt;&#x2F;&#x2F;! Test for #31233
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Which makes it pretty hard to follow an actual issue, ctrl + click by link is way faster and easier&lt;&#x2F;p&gt;
+&lt;p&gt;Next what I do is some &lt;code&gt;git&lt;&#x2F;code&gt; magic, at least this is how I see this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;shell&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;&lt;span&gt;$ git add .
+&lt;&#x2F;span&gt;&lt;span&gt;$ git commit --amend --no-edit
+&lt;&#x2F;span&gt;&lt;span&gt;$ git push --force-with-lease origin add-regression-test-1
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Now that&#x27;s 100% ready :)&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-to-expect-during-review&quot;&gt;What to expect during review&lt;&#x2F;h2&gt;
+&lt;p&gt;Now let&#x27;s talk a bit about what you can expect from the review process itself. I won&#x27;t be able to show this part directly in the blog post, but readers can check out the pull request I created above to see if there&#x27;s any review activity. I fully expect there might be some requested changes to my pull request, but let me describe the most common scenarios that might happen after you create your PR:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;CI fails due to tidy issues:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;There might be trailing whitespaces&lt;&#x2F;li&gt;
+&lt;li&gt;You forgot to add a newline at the end of the file&lt;&#x2F;li&gt;
+&lt;li&gt;You created a test in the root of &lt;code&gt;tests&#x2F;ui&lt;&#x2F;code&gt; - which has been recently prohibited, tests must now be in subdirectories&lt;&#x2F;li&gt;
+&lt;li&gt;You used an unclear test name - we now discourage names like &lt;code&gt;issue-123.rs&lt;&#x2F;code&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;You&#x27;ll be asked to rename the test, and the reviewer will likely suggest a more appropriate name&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;You&#x27;ll be asked to move the test to a more suitable directory&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;You&#x27;ll be asked to modify the test in some way:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Add a comment&lt;&#x2F;li&gt;
+&lt;li&gt;Change or add directives&lt;&#x2F;li&gt;
+&lt;li&gt;Adjust the test code itself&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;These are all completely normal situations that just need small fixes. Think of review feedback as collaborative teamwork and suggestions for improvement, not as criticism of your work. Every contributor goes through this!&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2F;h2&gt;
+&lt;p&gt;That&#x27;s it! We went from finding an issue to submitting a PR in about 15-20 minutes. &lt;code&gt;E-needs-test&lt;&#x2F;code&gt; issues are perfect first contributions because:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;They&#x27;re low-risk (just adding a test, not changing compiler logic)&lt;&#x2F;li&gt;
+&lt;li&gt;The solution is usually straightforward (the bug is already fixed)&lt;&#x2F;li&gt;
+&lt;li&gt;You get familiar with the test suite structure&lt;&#x2F;li&gt;
+&lt;li&gt;You learn the PR workflow without much pressure&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;It is important to add at the end that, depending on the issue itself, the process may differ slightly, for example, a different directory for the test or the test will expect an error output (i.e., the creation of a &lt;code&gt;.stderr&lt;&#x2F;code&gt; file), so you may have questions. If you want to try adding a test or solving an issue labeled &lt;code&gt;E-needs-test&lt;&#x2F;code&gt;, but are stuck or feel like you don&#x27;t know something, you can &lt;a href=&quot;https:&#x2F;&#x2F;rust-lang.zulipchat.com&#x2F;#narrow&#x2F;dm&#x2F;675515-Kivooeo&quot;&gt;write to me in private messages&lt;&#x2F;a&gt; on Zulip and&#x2F;or assign me as a reviewer using &lt;code&gt;r? Kivooeo&lt;&#x2F;code&gt; in the description. Thank you to everyone who works on Rust and everyone who will work on it in the future!&lt;&#x2F;p&gt;
+&lt;p&gt;In the next part I&#x27;m planning to take some A-diagnostics issue, to actually fix some error messages, yay!&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;On a side note, if you want to support the release of future blog posts, my work on the compiler, mentoring newcomers and GSoC students, I&#x27;d be very grateful if you could take a look at my &lt;a href=&quot;&#x2F;sponsor&quot;&gt;sponsor page&lt;&#x2F;a&gt; &amp;lt;3&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>So You Want to Contribute to Rust</title>
+        <published>2026-01-28T00:00:00+00:00</published>
+        <updated>2026-01-28T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/blog/first-part-of-contibuting/"/>
+        <id>https://kivooeo.github.io/blog/first-part-of-contibuting/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/blog/first-part-of-contibuting/">&lt;p&gt;&lt;em&gt;Before we start:&lt;&#x2F;em&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;This post is long and detailed on purpose. It&#x27;s not meant to be read linearly or &quot;from start to finish&quot;. If you&#x27;re just getting started, it&#x27;s perfectly fine to read only the parts that feel useful right now and ignore the rest until later&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;Have you ever opened the &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&quot;&gt;rust-lang&#x2F;rust&lt;&#x2F;a&gt; repo and felt overwhelmed by the sheer number of files, tests, and issues? Like you&#x27;re stuck in &quot;&lt;a href=&quot;https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Analysis_paralysis&quot;&gt;analysis paralysis&lt;&#x2F;a&gt;&quot; - so many options and so much complexity that you freeze and don&#x27;t know where to start. If you feel ambitious and&#x2F;or have time and energy to help people around the world and support your favorite programming language? Please, pull up a chair - this story is for you!&lt;&#x2F;p&gt;
+&lt;p&gt;To be honest, I personally didn&#x27;t have that stuck feeling at start, but most people who ask me how to get started do&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;finding-something-to-work-on&quot;&gt;Finding Something to Work On&lt;&#x2F;h2&gt;
+&lt;p&gt;First, let&#x27;s go to the &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&quot;&gt;rust-lang&#x2F;rust&lt;&#x2F;a&gt; repo. (Important note: this applies to other Rust repos like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust-clippy&quot;&gt;clippy&lt;&#x2F;a&gt; or &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rustfmt&quot;&gt;rustfmt&lt;&#x2F;a&gt; too - they also need contributors) Now stop for a moment and ask yourself: do you know what you want to work on?&lt;&#x2F;p&gt;
+&lt;p&gt;If your answer is &quot;no&quot;, that&#x27;s totally fine! A good first step is to start looking for an interesting task in this huge space of issues. There are tons of things to do - some exciting and some more routine. Here are a few beginner-friendly areas you might start with:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AA-diagnostics&quot;&gt;Diagnostics&lt;&#x2F;a&gt;: This is the part of the compiler that handles our error messages. You can help make these messages clearer or fix cases where the current message is confusing or misleading&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-needs-test&quot;&gt;E-needs-test label&lt;&#x2F;a&gt;: Rust&#x27;s test suite is enormous but still incomplete. An issue with this label has a bug fixed in the code but no test was added. You can add a test case to capture that fix so it doesn&#x27;t accidentally break in the future. These tasks usually involve small changes and are very valuable&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-mentor&quot;&gt;E-mentor label&lt;&#x2F;a&gt;: This label means a mentor has offered to help with the issue. It&#x27;s perfect for newcomers because you&#x27;ll have someone experienced ready to answer your questions as you work on it&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;E-easy: I don&#x27;t really want to recommend it because this particular label often attracts a lot of attention and a kind of battle for the issue begins&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20label%3AC-enhancement%20no%3Aassignee&quot;&gt;C-enhancement&lt;&#x2F;a&gt;: could be useful, it&#x27;s not always about the code and might be less stressfull&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;h2 id=&quot;my-first-contribution-story&quot;&gt;My First Contribution Story&lt;&#x2F;h2&gt;
+&lt;p&gt;Let me digress a bit and share how I made my first contribution to the Rust compiler. One evening I was relaxing with no plans and watching a &lt;a href=&quot;https:&#x2F;&#x2F;www.youtube.com&#x2F;watch?v=5MIsMbFjvkw&quot;&gt;video&lt;&#x2F;a&gt; by Tsoding about Rust. In it, he tried to access a struct field through a raw pointer using the &lt;code&gt;-&amp;gt;&lt;&#x2F;code&gt; operator. In Rust, you can&#x27;t do that, that&#x27;s a C&#x2F;++ thing, but the compiler still knows what you meant to do. In this example, the error message was actually pretty misleading&lt;&#x2F;p&gt;
+&lt;p&gt;So here is what roughly Tsoding was trying to do&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;Point &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;x&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;y&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; s &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; Point { x: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;, y: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2 &lt;&#x2F;span&gt;&lt;span&gt;};
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; p &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;s &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;as &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;*const&lt;&#x2F;span&gt;&lt;span&gt; Point;
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    p-&amp;gt;x;
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Before my fix, the diagnostic was looks like this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;help: `xs` is a raw pointer; try dereferencing it
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;LL &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|         &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;p)-&amp;gt;x;
+&lt;&#x2F;span&gt;&lt;span&gt;   |         ++  +
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;As you can see here, it correctly asks you to dereference it, but keep a &lt;code&gt;-&amp;gt;&lt;&#x2F;code&gt; which still isn&#x27;t a valid Rust code&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Suddenly something clicked in my head: &quot;What&#x27;s stopping me from start right now and fix that error message?&quot;, and I got excited by this idea. At that moment I had literally no open-source experience and didn&#x27;t even know git well, so I went online to learn what a pull request is and how to make one :)&lt;&#x2F;p&gt;
+&lt;p&gt;After some effort, I managed to fork the repository and dive into the code. Then I instantly hit the next roadblock: &quot;There are millions of lines here - how do I find where this error message is generated?&quot; Luckily, luck was on my side. I searched the repository for a unique part of the error text and found a &lt;code&gt;.ftl&lt;&#x2F;code&gt; file - that&#x27;s a Fluent template for error messages. From there I tracked down the diagnostic struct in the code and finally found where it was being created&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;I scribbled together a more-or-less working fix and &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;139921&quot;&gt;submitted a PR&lt;&#x2F;a&gt;. I still didn&#x27;t understand a lot of the basics - for example, I didn&#x27;t know how to re-run the tests with the &lt;code&gt;--bless&lt;&#x2F;code&gt; flag to update expected output. Despite my inexperience, the reviewers (who are amazing people) did most of the heavy lifting, but I loved the experience. It was completely new to me. While that first PR was under review, I already started on a second one: I found another small issue and fixed it. The &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;140094&quot;&gt;second PR&lt;&#x2F;a&gt; turned out to be much simpler and got merged even faster than the first&lt;&#x2F;p&gt;
+&lt;p&gt;And that&#x27;s how I stayed involved in the project. I kept finding and fixing interesting problems, all while chatting and collaborating with many really cool people&lt;&#x2F;p&gt;
+&lt;p&gt;Here is how that error message looks now after my and reviewers efforts:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;help: `p` is a raw pointer; try dereferencing it
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;11 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;     p-&amp;gt;x;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;11 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;+     &lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;p).x;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;I&lt;&#x2F;p&gt;
+&lt;p&gt;Thanks for sticking with me through that story! Now, back to the main topic: I want to emphasize something important. Many new contributors (and this is often a mistake) focus on counting merges or commits - chasing those numbers. I believe that&#x27;s fundamentally the wrong approach and often leads to burnout. I know it sounds weird coming from someone who did 100 merges in the first 6 months just for fun ^^, but honestly, I was just enjoying learning and helping. It was only later that I realized how many that was! Trust me, don&#x27;t worry about the count - concentrate on the learning and the enjoyment&lt;&#x2F;p&gt;
+&lt;p&gt;btw, there&#x27;s plenty of work you can do without writing a line of code. For example, we already talked about adding tests for &lt;code&gt;E-needs-test&lt;&#x2F;code&gt; issues. Other contributions include triaging issues, improving documentation, or helping to reproduce bugs (&lt;code&gt;E-needs-mvce&lt;&#x2F;code&gt;). These non-code contributions are also very valuable&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;small-practical-step-about-assigning-to-issues&quot;&gt;Small practical step about assigning to issues&lt;&#x2F;h2&gt;
+&lt;p&gt;Let&#x27;s say you&#x27;ve found an issue you like and want to work on it. That&#x27;s great! To show others that you&#x27;re already working on it, you can use our bot (actually, there&#x27;s a real person sitting there assigning labels, who knows). - &lt;code&gt;rustbot&lt;&#x2F;code&gt;, or more specifically &lt;code&gt;@rustbot claim&lt;&#x2F;code&gt; to assign yourself and &lt;code&gt;@rustbot release&lt;&#x2F;code&gt; to remove the assignment from yourself (which is totally fine!).&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;big-practical-steps&quot;&gt;Big practical steps&lt;&#x2F;h2&gt;
+&lt;p&gt;Once you&#x27;ve claimed an issue, it&#x27;s time to set up your environment. The first major step is to build the compiler (good &lt;a href=&quot;https:&#x2F;&#x2F;rustc-dev-guide.rust-lang.org&#x2F;building&#x2F;quickstart.html&quot;&gt;page&lt;&#x2F;a&gt; about it). This in average takes 10-15 minutes, usually 5-8 minutes and rarely it&#x27;s more than 30 minutes, recompiles after small changes is usually faster, so don&#x27;t worry (also using tip 2 from the end could help you with recompiling time)&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;If you already have an idea of what you want to work on (maybe you found a bug that interests you or a feature you want to add), it&#x27;s hard to give one-size-fits-all advice - it really depends on your chosen task&lt;&#x2F;p&gt;
+&lt;p&gt;One thing I will strongly encourage is: don&#x27;t be afraid to ask questions. When maintainers see someone who is genuinely interested and trying to understand, we jump in to help and explain as much as we can&lt;&#x2F;p&gt;
+&lt;p&gt;Of course, asking questions out loud can be scary, and it&#x27;s totally normal to feel shy. Even if you&#x27;re hesitant, I still recommend live communication: for example, the &lt;a href=&quot;https:&#x2F;&#x2F;rust-lang.zulipchat.com&#x2F;&quot;&gt;Rust Zulip chat&lt;&#x2F;a&gt; is great for quick back-and-forth, or you can comment directly on the GitHub issue. If the person who filed the issue is a core team member, they often respond to questions there. Otherwise, someone on the team or the community will likely see your question and help out&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Here&#x27;s a somewhat surprising tip for those who are really stuck: try asking LLM for help. I know, I know - the community is skeptical about language models and no one likes spammy answers&#x2F;contributions&#x2F;PRs. I&#x27;m a reviewer too, and I know it very well. The key is &lt;em&gt;how&lt;&#x2F;em&gt; you use it&lt;&#x2F;p&gt;
+&lt;p&gt;Please don&#x27;t ask the language model to write a code for you if you don&#x27;t understand it. Instead, ask specific and concrete questions about your task&lt;&#x2F;p&gt;
+&lt;p&gt;For example, &quot;How do I find where this function is defined in the compiler?&quot; or &quot;What does this part of the code do?&quot;, language models are pretty good at that. Their suggestions aren&#x27;t perfect (they usually won&#x27;t know the quirks of codebase), but they can give you a starting point or point you at the right file. For some people, that little hint is enough to move forward :3&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;I recently reviewed a pull request that fixed an error message with the &lt;code&gt;assert!&lt;&#x2F;code&gt; and the returned value. In that case, we needed to detect whether the &lt;code&gt;if&lt;&#x2F;code&gt; came from the &lt;code&gt;assert!&lt;&#x2F;code&gt; or not. The author&#x27;s method wasn&#x27;t perfect&lt;&#x2F;p&gt;
+&lt;p&gt;I decided to conduct my own investigation to suggest a better approach, and I realised that I knew what I was looking for, but I couldn&#x27;t search for it due to my limited knowledge of regex and grep. So, I described what I was looking for to the LLM, which provided me with some &lt;code&gt;rg&lt;&#x2F;code&gt; commands. I simply copied and pasted them into the terminal and started searching with them&lt;&#x2F;p&gt;
+&lt;p&gt;I found what I was looking for! I could also suggest a better, more idiomatic way for the author to rewrite it&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;when-you-get-stuck&quot;&gt;When You Get Stuck&lt;&#x2F;h2&gt;
+&lt;p&gt;Let&#x27;s say you&#x27;ve opened the code and started digging in, but after a week you still feel stuck and don&#x27;t know how to proceed. That&#x27;s a very common feeling - nothing to panic about&lt;&#x2F;p&gt;
+&lt;p&gt;If you&#x27;ve hit a wall, I suggest asking for help as we&#x27;ve discussed it above: post a question on Zulip or on the GitHub issue itself (remember, you can mention people, or just write a polite question). Often the issue author or someone else will spot it and give pointers&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Another perfectly fine approach is to put the issue aside for now. Maybe you tried to make progress and realized you&#x27;re blocked or don&#x27;t have time at the moment&lt;&#x2F;p&gt;
+&lt;p&gt;That happens to everyone. If you do put it on hold, leave a note in the issue about what you tried and what the obstacles were&lt;&#x2F;p&gt;
+&lt;p&gt;For example: &quot;I explored the code around &lt;code&gt;X&lt;&#x2F;code&gt; and tried using &lt;code&gt;Y&lt;&#x2F;code&gt;, but I&#x27;m not sure if that&#x27;s the right approach. I&#x27;m stuck on how to proceed&quot;, yes, you didn&#x27;t fix the issue, but you&#x27;ve saved the next person who picks it up a lot of time - they&#x27;ll know where you left off and what you&#x27;ve already tried&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;your-first-pr&quot;&gt;Your First PR&lt;&#x2F;h2&gt;
+&lt;p&gt;Now imagine you finally decide to tackle an issue and make your first pull request. You might wonder, &quot;What makes a good PR?&quot;, here&#x27;s the thing: any contribution is welcome. Really! Even if you&#x27;re just fixing a typo in documentation, adding a test, or cleaning up a bit of code for readability, it&#x27;s all valuable&lt;&#x2F;p&gt;
+&lt;p&gt;I don&#x27;t like to divide contributions into &quot;good&quot; or &quot;bad.&quot; The more important part, imo, is that you did it yourself: you wrote the code and you wrote the PR description. It might be challenging at first, but we want to see your thought process and how you understand the problem. Write a clear summary of what you did in the PR so reviewers can follow along with your reasoning&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Personal example: in my first PRs, I often made suboptimal code choices (and honestly, I still do sometimes). At first I didn&#x27;t know most of the codebase. The reviewers were super helpful and always suggested a more idiomatic or correct approach.&lt;&#x2F;p&gt;
+&lt;p&gt;For instance, they might say, &quot;You don&#x27;t need to implement this yourself - there&#x27;s already a method doing this&quot;, there has never been (and I hope never will be) an occasion where someone yelled at me for writing imperfect code or doing mistakes. We all make mistakes - it&#x27;s part of learning. Even the core team members make mistakes. The reviewers&#x27; job is to help improve the code, not to shame you&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;sometimes-even-a-well-crafted-pr-gets-closed&quot;&gt;Sometimes Even a Well-Crafted PR Gets Closed&lt;&#x2F;h2&gt;
+&lt;p&gt;Not every contribution ends up merged - and that&#x27;s okay. Sometimes the code is fine, but the idea behind it isn&#x27;t what the community wants. Here&#x27;s a personal example:&lt;&#x2F;p&gt;
+&lt;p&gt;I once submitted a &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;147102&quot;&gt;PR&lt;&#x2F;a&gt; that aimed to suggest using method syntax &lt;code&gt;x.max(y)&lt;&#x2F;code&gt; when someone wrote &lt;code&gt;max(x, y)&lt;&#x2F;code&gt; but hadn&#x27;t imported the function. The fix itself was clean and worked correctly:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;else if &lt;&#x2F;span&gt;&lt;span&gt;[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;max&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;min&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;].&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;contains&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;item_str.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;as_str&lt;&#x2F;span&gt;&lt;span&gt;())
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span&gt;PathSource::Expr(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(Expr {
+&lt;&#x2F;span&gt;&lt;span&gt;            kind: ExprKind::Call(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;, args),
+&lt;&#x2F;span&gt;&lt;span&gt;            span: call_span,
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;..
+&lt;&#x2F;span&gt;&lt;span&gt;        })) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; source
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; args.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(arg0) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.r.tcx.sess.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;source_map&lt;&#x2F;span&gt;&lt;span&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;span_to_snippet&lt;&#x2F;span&gt;&lt;span&gt;(args[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;].span)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(arg1) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.r.tcx.sess.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;source_map&lt;&#x2F;span&gt;&lt;span&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;span_to_snippet&lt;&#x2F;span&gt;&lt;span&gt;(args[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;].span)
+&lt;&#x2F;span&gt;&lt;span&gt;    {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;((
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span&gt;call_span,
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;you may have meant to use the method syntax&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;format!&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;{arg0}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;{item_str}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;{arg1}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;)&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;),
+&lt;&#x2F;span&gt;&lt;span&gt;        ))
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Some team members preferred the free function (&lt;code&gt;std::cmp::max(x, y)&lt;&#x2F;code&gt;) because it&#x27;s symmetric and feels more natural for a binary operation. The PR wasn&#x27;t rejected because of bad code - it was a stylistic disagreement&lt;&#x2F;p&gt;
+&lt;p&gt;Just keep in mind, that even a &quot;failed&quot; PR is a win if you learn from it. Not every issue needs fixing the way you first think. Sometimes the best contribution is realizing when to step back&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;another-example-of-anti-success-of-mine&quot;&gt;Another example of anti-success of mine&lt;&#x2F;h2&gt;
+&lt;p&gt;I want to share one more personal example that might be useful, especially if you&#x27;re worried about &quot;breaking something&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;Recently, I worked on a fairly large &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;150603&quot;&gt;PR&lt;&#x2F;a&gt; that introduced new logic for the MGCA feature. It wasn&#x27;t a small change: it added quite a bit of new code, went through a long review process, and required several iterations to address feedback. After many discussions and refinements, it finally got merged&lt;&#x2F;p&gt;
+&lt;p&gt;The PR was well reviewed, had good test coverage, and didn&#x27;t cause any regressions in the existing test suite. At that point, everything looked solid&lt;&#x2F;p&gt;
+&lt;p&gt;A few days ago, I randomly stumbled upon a new &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;151414&quot;&gt;issue&lt;&#x2F;a&gt;. I wasn&#x27;t pinged, mentioned, or otherwise notified - I just happened to see it while browsing. The issue described a problem that appeared after my PR landed&lt;&#x2F;p&gt;
+&lt;p&gt;And this is the important part: this kind of thing is completely normal&lt;&#x2F;p&gt;
+&lt;p&gt;Even carefully reviewed changes with good tests can expose new edge cases or interactions that weren&#x27;t obvious at the time. The compiler is a huge, complex system, and no one can predict all consequences upfront&lt;&#x2F;p&gt;
+&lt;p&gt;What matters is not that a bug appeared, but how you react to it&lt;&#x2F;p&gt;
+&lt;p&gt;I assigned the issue to myself and left a short note saying that I&#x27;d take a look when I had time. Not because I felt guilty, but because this is simply part of the responsibility that comes with contributing. Fixing follow-up issues, investigating regressions, and iterating on previous changes is a normal and expected part of the process&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;m sharing this to make one thing clear: introducing a bug does not make you a bad contributor, but ignoring it may&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;dealing-with-reviews-and-ci&quot;&gt;Dealing with Reviews and CI&lt;&#x2F;h2&gt;
+&lt;p&gt;So you sent your first pull request - great job, that&#x27;s a big achievement by itself! After that the CI will automatically start, it will build compiler, check &lt;code&gt;tidy&lt;&#x2F;code&gt;, style, all tests, and maybe something else, it took approx. about hour, so.. be ready&lt;&#x2F;p&gt;
+&lt;p&gt;Also, if your CI fails, don&#x27;t be afraid of it. It&#x27;s perfectly normal, even for the most skilled top-tier Rust contributors. It&#x27;s so easy to miss something in the CI checks and cause a failure. Our bot will politely tell you exactly what failed and most likely tell you how to fix it. Just force-push the fix and move on. We all see it daily and fail CI ourselves :3&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Now let&#x27;s talk about what happens during review. You might worry: &quot;Will strict people come and nitpick every little thing in my code, just to embarrass me?&quot; Absolutely not. If the review process seems picky, keep in mind it&#x27;s not personal. Reviewers are not judging you as a person; they&#x27;re focused on the code. When someone asks you to fix a bunch of small issues, it&#x27;s only to improve the project, not to discourage you&lt;&#x2F;p&gt;
+&lt;p&gt;As a newcomer, you might not immediately understand what a reviewer is asking for. That&#x27;s okay. Feel free to ask for clarification. Just comment on the review saying something like &quot;Could you help me understand this comment?&quot; Everyone was new once, and they will help you understand the feedback&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Sometimes review comments can sound a bit harsh or blunt. Remember, that&#x27;s usually just a tone issue - it&#x27;s much easier to criticize code than to criticize a person. Try to interpret comments as suggestions on the code. If something stings, don&#x27;t take it personally. You and your contribution matter to us, and we want to see you succeed&lt;&#x2F;p&gt;
+&lt;p&gt;Imagine you get a review and they ask you to make a change, but you&#x27;re not sure what they mean. Perhaps you&#x27;ve been staring at your editor for days, too intimidated to ask, and you feel like you&#x27;ve lost all sense of direction. Or maybe you immediately reach out and ask a reviewer for a clarification on something really simple, and they point out &quot;oh, it was literally 5 lines above your current code.&quot; Both situations happen to everyone&lt;&#x2F;p&gt;
+&lt;p&gt;The balance is: try solving it yourself first, but not at the cost of burning out. If you spend a reasonable time trying to figure out the requested change and still can&#x27;t do it, that&#x27;s okay. Just go back to the reviewer and explain what you tried and where you&#x27;re stuck. For example: &quot;I tried inserting this line here and running the test, but it still fails with X. I&#x27;m not sure how to fix it.&quot; This shows you made an effort, and trust me, reviewers deeply appreciate when you explain your attempts. It makes it easier for them to help you and keeps the collaboration going smoothly&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;useful-resources&quot;&gt;Useful resources&lt;&#x2F;h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;rustc-dev-guide.rust-lang.org&#x2F;&quot;&gt;https:&#x2F;&#x2F;rustc-dev-guide.rust-lang.org&#x2F;&lt;&#x2F;a&gt; - your primary handbook for everything compiler related&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;forge.rust-lang.org&#x2F;&quot;&gt;https:&#x2F;&#x2F;forge.rust-lang.org&#x2F;&lt;&#x2F;a&gt; - policies, procedures, and team information&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h2 id=&quot;random-tips&quot;&gt;Random tips&lt;&#x2F;h2&gt;
+&lt;p&gt;They are not necesessary, but you may found them useful, they initally were in text, but I decided factor them out to its own chapter&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;tip-1&quot;&gt;Tip 1&lt;&#x2F;h3&gt;
+&lt;p&gt;there are compiler flag, that might help you figuring out where error message was created &lt;code&gt;-Ztrack-diagnostics&lt;&#x2F;code&gt;, it will show you a line of code in compiler where error was actually created (it&#x27;s not always 100% helpful, but very likely would be a good starting point, I found this one very useful at my start)&lt;&#x2F;p&gt;
+&lt;p&gt;here is an example&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;warning: function `is_maybe_transmutable` is never used
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;home&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;gh&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;Kivooeo&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;test_&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;src&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;main.rs:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;6&lt;&#x2F;span&gt;&lt;span&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;12
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;6 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|     &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;pub fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;is_maybe_transmutable&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;Src, Dst&amp;gt;()
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|            ^^^^^^^^^^^^^^^^^^^^^
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; note: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;Ztrack&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;diagnostics: created at compiler&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;rustc_passes&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;src&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;dead.rs:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1113&lt;&#x2F;span&gt;&lt;span&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;18
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;as you can see above, there is a note with a specific place&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;tip-2&quot;&gt;Tip 2&lt;&#x2F;h3&gt;
+&lt;p&gt;Once you have a working build, you can save hours of recompilation time by using the &lt;code&gt;--keep-stage&lt;&#x2F;code&gt; flag. For example&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;.&#x2F;x b --keep-stage 1&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;This tells to &lt;code&gt;x&lt;&#x2F;code&gt; to reuse the already-compiled &lt;code&gt;stage 1&lt;&#x2F;code&gt; compiler when you make changes to later stages. Sometimes you still need a full rebuild, but for most iterative work this flag is a lifesaver&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;small-conclusion&quot;&gt;Small conclusion&lt;&#x2F;h2&gt;
+&lt;p&gt;Starting to contribute to Rust isn&#x27;t about genius, it&#x27;s about curiosity and persistence. You don&#x27;t have to know the entire codebase. You learn, ask questions, and take small steps&lt;&#x2F;p&gt;
+&lt;p&gt;That was the first part. I hope it helped you at least a little and dispelled some of your fears&lt;&#x2F;p&gt;
+&lt;p&gt;In the next part, I want to take a real issue and walk through the process from start to merge, showing the entire process in detail&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>`if let guard` stabilizing path</title>
+        <published>2026-01-25T00:00:00+00:00</published>
+        <updated>2026-01-25T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/blog/if-let-guard/"/>
+        <id>https://kivooeo.github.io/blog/if-let-guard/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/blog/if-let-guard/">&lt;p&gt;Hi all!&lt;&#x2F;p&gt;
+&lt;p&gt;In this blog post, I&#x27;m going to talk about a feature I&#x27;ve been working on stabilizing&lt;&#x2F;p&gt;
+&lt;p&gt;The &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;51114&quot;&gt;original tracking issue&lt;&#x2F;a&gt; was created more than 7 years ago&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;ve been using Rust for less than 7 years, so I’ll relay what I’ve heard: the feature was stabilized at first, but some drop-order bugs appeared, and it was quickly destabilized. I guess it was then abandoned for a long time, currently, all the drop order bugs have been fixed, and it works correctly&lt;&#x2F;p&gt;
+&lt;p&gt;I encountered some code where I tried to use &lt;code&gt;if let guard&lt;&#x2F;code&gt; and then compiler says&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;hey, that&#x27;s not stable, what are you trying to do here?&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;and I was like&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;eeh, what do you mean not stable, this is so obvious and... simple, like, how is this different from an &lt;code&gt;if guard&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;After that, I started investigating this feature, this was at the very beginning of my contributing journey somewhere around end of April&lt;&#x2F;p&gt;
+&lt;p&gt;And I got a lot of help from another Rust team member &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;est31&quot;&gt;est31&lt;&#x2F;a&gt;, who, not long before I started looking into this, had finished stabilizing &lt;code&gt;let chains&lt;&#x2F;code&gt; which was a major stabilization for Rust and one of the most requested features overall&lt;&#x2F;p&gt;
+&lt;p&gt;As you can tell from the post&#x27;s title, it&#x27;s about the &lt;code&gt;if let guard&lt;&#x2F;code&gt; feature, which I think is a very pretty one :3&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;what-is-this-feature-even-about&quot;&gt;What is this feature even about?&lt;&#x2F;h3&gt;
+&lt;p&gt;This is a pretty straightforward feature at first sight, I mean very straightforward, it&#x27;s basically allows you to use &lt;code&gt;let&lt;&#x2F;code&gt; patterns in match guards, like this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;42&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; x.parse::&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Ok&lt;&#x2F;span&gt;&lt;span&gt;(s) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(y) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Ok&lt;&#x2F;span&gt;&lt;span&gt;(s) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This simple snippet shows what the feature does - nothing complicated, right? So roughly without this feature (there are many ways to rewrite it in Rust, I just pick one that is closest to the code above and what I&#x27;d use)&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;42&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; x.parse::&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Ok&lt;&#x2F;span&gt;&lt;span&gt;(s) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(y) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; y {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; first branch
+&lt;&#x2F;span&gt;&lt;span&gt;        } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; second branch
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Personally I don&#x27;t like this, I never liked this, just because there is cases where you really don&#x27;t want to create a block in match arm and just return value&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;A &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;x&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;y&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;i32&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;related_points&lt;&#x2F;span&gt;&lt;span&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Option&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Vec&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;A&amp;gt;&amp;gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; A {
+&lt;&#x2F;span&gt;&lt;span&gt;        x: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;        y: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;3&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;        related_points: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;vec!&lt;&#x2F;span&gt;&lt;span&gt;[]),
+&lt;&#x2F;span&gt;&lt;span&gt;    };
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;42&lt;&#x2F;span&gt;&lt;span&gt;);
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; x {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x)
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; A { related_points, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;.. &lt;&#x2F;span&gt;&lt;span&gt;} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; a
+&lt;&#x2F;span&gt;&lt;span&gt;                &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(points) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; related_points &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; points.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    };
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;span&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;So, currently you are forced to write a block like this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; x {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; A { related_points, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;.. &lt;&#x2F;span&gt;&lt;span&gt;} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; a
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(points) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; related_points
+&lt;&#x2F;span&gt;&lt;span&gt;        {
+&lt;&#x2F;span&gt;&lt;span&gt;            points.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;len&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;        } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;As I said before, I don&#x27;t like this, like, completely&lt;&#x2F;p&gt;
+&lt;p&gt;As you might have already seen, &lt;code&gt;if let guard&lt;&#x2F;code&gt; could use &lt;code&gt;let chains&lt;&#x2F;code&gt;...&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;let-chains&quot;&gt;Let chains&lt;&#x2F;h3&gt;
+&lt;p&gt;Yes, you get it right, this feature is fully compatible with &lt;code&gt;let chains&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;let chains&lt;&#x2F;code&gt; are actually one of my favorite Rust features, even though I started learning Rust only few years ago, I can definitely tell that &lt;code&gt;let chains&lt;&#x2F;code&gt; were my most used feature since then, I do really &lt;em&gt;love&lt;&#x2F;em&gt; patterns and hope you too!&lt;&#x2F;p&gt;
+&lt;p&gt;So back to &lt;code&gt;let chains&lt;&#x2F;code&gt; in &lt;code&gt;if let guard&lt;&#x2F;code&gt;, you might be wondering, what&#x27;s so special about them?&lt;&#x2F;p&gt;
+&lt;p&gt;Here’s the answer: &lt;code&gt;let chains&lt;&#x2F;code&gt; were originally restricted to Rust 2024+ editions, so using them in edition 2021 (or earlier) would give an error&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;error: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; chains are only allowed &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;in&lt;&#x2F;span&gt;&lt;span&gt; Rust &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2024&lt;&#x2F;span&gt;&lt;span&gt; or later
+&lt;&#x2F;span&gt;&lt;span&gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;-&amp;gt; src&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;main.rs:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;4&lt;&#x2F;span&gt;&lt;span&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;8
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;4 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|     &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;42&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; x.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;is_positive&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;  | 
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This will not work as we just tried above, but you already have seen the possibility of using &lt;code&gt;let chains&lt;&#x2F;code&gt; in &lt;code&gt;if let guard&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;A few questions might come to mind:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Does that mean that &lt;code&gt;if let guard&lt;&#x2F;code&gt; going to be stabilized in edition 2024+?&lt;&#x2F;li&gt;
+&lt;li&gt;Or does it mean that I could use &lt;code&gt;if let guard&lt;&#x2F;code&gt; in all editions, but using &lt;code&gt;let chains&lt;&#x2F;code&gt; in &lt;code&gt;if let guard&lt;&#x2F;code&gt; will be restricted&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Sooo... my answer will be pretty short and direct: using &lt;code&gt;let chains&lt;&#x2F;code&gt; in &lt;code&gt;if let guard&lt;&#x2F;code&gt; will be allowed in all editions, which means&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec07c;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span&gt;() {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;42&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; x.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;is_negative&lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;println!&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;wow!&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;),
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This code will work perfectly fine in all editions even though it contains &lt;code&gt;let chains&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Important note here:&lt;&#x2F;p&gt;
+&lt;p&gt;Currently, if you try to run this code in edition 2021 or lower, it will give you an error, about &lt;code&gt;let chains&lt;&#x2F;code&gt;, just because, when we are parsing &lt;code&gt;if let guard&lt;&#x2F;code&gt; in compiler we do have a &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;blob&#x2F;4d38622e8bec00a9001264c4e9f4723fceca23cb&#x2F;compiler&#x2F;rustc_parse&#x2F;src&#x2F;parser&#x2F;expr.rs#L3459&quot;&gt;check&lt;&#x2F;a&gt; for &lt;code&gt;let chains&lt;&#x2F;code&gt; to gave such error,&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;has_let_expr&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;cond) {
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; span &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; if_span.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;to&lt;&#x2F;span&gt;&lt;span&gt;(cond.span);
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;.psess.gated_spans.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;gate&lt;&#x2F;span&gt;&lt;span&gt;(sym::if_let_guard, span);
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;But don&#x27;t worry, this will be deleted with stabilization, it&#x27;s fine that it doesn&#x27;t work now, it will work as stabilized&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;This is snippet from my code that I wrote to fix a diagnostic problem using both of these features, we are using a lot of unstable features in compiler so which is why I was able to do this,&lt;&#x2F;p&gt;
+&lt;p&gt;Btw, if you aren&#x27;t comfortable with understanding this code, which is 100% fine, I&#x27;m not waiting for the reader to be a rustc developer, just try to see the differences in form itself, the semantics are pretty much the same&lt;&#x2F;p&gt;
+&lt;p&gt;The problem was that an &lt;code&gt;Op::AssignOp(assign_op)&lt;&#x2F;code&gt; branch already existed and extending it for this new check would have been messy, since it wasn&#x27;t just a few lines, so it would have dramatically bloated the original branch, the solution was to create a separate branch and do all the checks right in the match guard:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;Op::AssignOp(assign_op)
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span&gt; assign_op.node &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span&gt;hir::AssignOpKind::AddAssign
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span&gt;hir::ExprKind::Binary(bin_op, left, right) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;lhs_expr.kind
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; bin_op.node &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span&gt;hir::BinOpKind::And
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;crate&lt;&#x2F;span&gt;&lt;span&gt;::op::contains_let_in_chain(left)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span&gt;hir::ExprKind::Path(hir::QPath::Resolved(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;, path)) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;right.kind
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;matches!&lt;&#x2F;span&gt;&lt;span&gt;(path.res, hir::def::Res::Local(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;)) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt;
+&lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; give a nice user friendly error here :3
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Actually, for those who wonder how the same code will looks without all this stuff is... this...&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;Op::AssignOp(assign_op) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span&gt; assign_op.node &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span&gt;hir::AssignOpKind::AddAssign {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span&gt;hir::ExprKind::Binary(bin_op, left, right) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;lhs_expr.kind {
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span&gt; bin_op.node &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;== &lt;&#x2F;span&gt;&lt;span&gt;hir::BinOpKind::And {
+&lt;&#x2F;span&gt;&lt;span&gt;                &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if crate&lt;&#x2F;span&gt;&lt;span&gt;::op::contains_let_in_chain(left) {
+&lt;&#x2F;span&gt;&lt;span&gt;                    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span&gt;hir::ExprKind::Path(hir::QPath::Resolved(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;, path)) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;right.kind
+&lt;&#x2F;span&gt;&lt;span&gt;                    {
+&lt;&#x2F;span&gt;&lt;span&gt;                        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;matches!&lt;&#x2F;span&gt;&lt;span&gt;(path.res, hir::def::Res::Local(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_&lt;&#x2F;span&gt;&lt;span&gt;)) {
+&lt;&#x2F;span&gt;&lt;span&gt;                            &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; give an nice user friendly error here :3
+&lt;&#x2F;span&gt;&lt;span&gt;                        }
+&lt;&#x2F;span&gt;&lt;span&gt;                    }
+&lt;&#x2F;span&gt;&lt;span&gt;                }
+&lt;&#x2F;span&gt;&lt;span&gt;            }
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This is far from perfection! So please use both of these nice features to get closer to it ^^,&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;when-this-feature-will-be-out&quot;&gt;When this feature will be out?&lt;&#x2F;h3&gt;
+&lt;p&gt;Actually, in perfect scenario, I&#x27;d say that this feature will be stable at 1.95, which is very optimistic. There is only one blocker left: documentation, so as far as I can tell, it will be FCP&#x27;ed and merged after the documentation is merged, in less optimistic scenario I think it will be ready to 1.96, but, to be honest both of these scenarios are very close and mostly important is very realistic, because all the concerns about drop order have been resolved, there is nothing blocking it&lt;&#x2F;p&gt;
+&lt;h1 id=&quot;faq-section&quot;&gt;FAQ section&lt;&#x2F;h1&gt;
+&lt;p&gt;This section will answer some of the questions that might come up in your head&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;why-are-let-chains-in-if-let-guard-stable-on-all-editions&quot;&gt;Why are let chains in if let guard stable on all editions?&lt;&#x2F;h3&gt;
+&lt;p&gt;That&#x27;s a really good question! It&#x27;s hard to say with complete confidence since I wasn&#x27;t working on the original &lt;code&gt;let chains&lt;&#x2F;code&gt; stabilization and I&#x27;m not deeply familiar with that part of the compiler. But from what I&#x27;ve learned from the team: &lt;code&gt;let chains&lt;&#x2F;code&gt; in &lt;code&gt;if let guard&lt;&#x2F;code&gt; don&#x27;t suffer from the drop order issues that affect regular &lt;code&gt;if chains&lt;&#x2F;code&gt; because there&#x27;s no &lt;code&gt;else&lt;&#x2F;code&gt; block like in &lt;code&gt;if let&lt;&#x2F;code&gt; has that can cause scoping complications.&lt;&#x2F;p&gt;
+&lt;p&gt;To stabilize &lt;code&gt;let chains&lt;&#x2F;code&gt; for Edition 2024, the &lt;code&gt;if_let_rescope&lt;&#x2F;code&gt; feature was introduced to fix drop order behavior in contexts with &lt;code&gt;else&lt;&#x2F;code&gt; blocks. Match guards never had this problem—they&#x27;re just boolean conditions without an &lt;code&gt;else&lt;&#x2F;code&gt; branch, so temporaries already had predictable scoping. Since &lt;code&gt;if let guard&lt;&#x2F;code&gt; already behaves correctly without needing the rescoping fix, it works consistently across all editions.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;what-was-the-drop-order-bug-that-was-fixed&quot;&gt;What was the drop order bug that was fixed?&lt;&#x2F;h3&gt;
+&lt;p&gt;Well, I can&#x27;t tell about previous stabilization, since not much is known about it, but I can speak about current one&lt;&#x2F;p&gt;
+&lt;p&gt;So in current stabilization, right after it was FCP&#x27;ed and I had fixed all (30+) the last nits, and it was sitting in the queue to be merged, &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;dianne&quot;&gt;dianne&lt;&#x2F;a&gt; raised a very good point with drop order,&lt;&#x2F;p&gt;
+&lt;p&gt;I will leave &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;141295#issuecomment-2968975596&quot;&gt;her comment&lt;&#x2F;a&gt; here, just in case someone wants to see it for themselves, but I will explain this a little, honestly this comment is pretty well written as it, but here&#x27;s the problem:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; SignificantDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;    x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; SignificantDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;unreachable!&lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;x&lt;&#x2F;code&gt; drops before &lt;code&gt;y&lt;&#x2F;code&gt; which is not obvious and maybe incorrect sometimes, and another case shows the actual problem of inconsistent drop order pretty well&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span&gt;[LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;), LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;)] {
+&lt;&#x2F;span&gt;&lt;span&gt;    [x, y] &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; z &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;3&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;unreachable!&lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;First, let me explain how to read this, it exactly show drop order by numbers, so &lt;code&gt;LogDrop(o, 1)&lt;&#x2F;code&gt; will drop first, &lt;code&gt;LogDrop(o, 2)&lt;&#x2F;code&gt; second and so on&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;So here, it will drop everything in the following order &lt;code&gt;y&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;x&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;z&lt;&#x2F;code&gt;, which is also not correct, you would expect right to left drop order, now, thanks to dianne&#x27;s efforts, it works as intended and expected: &lt;code&gt;z&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;y&lt;&#x2F;code&gt; -&amp;gt; &lt;code&gt;x&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span&gt;[LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;3&lt;&#x2F;span&gt;&lt;span&gt;), LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;)] {
+&lt;&#x2F;span&gt;&lt;span&gt;    [x, y] &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; z &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;This behavior was fixed by dianne in &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;143376&quot;&gt;this pull request&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h3 id=&quot;what-is-the-current-drop-order-behavior&quot;&gt;What is the current drop order behavior?&lt;&#x2F;h3&gt;
+&lt;p&gt;So yes, as you might have seen above, the drop order is correct and right to left order&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span&gt;[LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;5&lt;&#x2F;span&gt;&lt;span&gt;), LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;4&lt;&#x2F;span&gt;&lt;span&gt;)] {
+&lt;&#x2F;span&gt;&lt;span&gt;    [x, y]
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; z &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;3&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; w &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; v &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LogDrop(o, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;(),
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;This is consistent and stable, so there is nothing to worry about. There was also a bug with &lt;code&gt;pin!()&lt;&#x2F;code&gt; that was found also during the limit testing of &lt;code&gt;if let guard&lt;&#x2F;code&gt; by &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;theemathas&quot;&gt;theemathas&lt;&#x2F;a&gt;, so this bug looked like this and it wasn&#x27;t necessarily a bug in the &lt;code&gt;if let guard&lt;&#x2F;code&gt;, but &lt;code&gt;let chains&lt;&#x2F;code&gt; one&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LoudDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;0&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;pin!&lt;&#x2F;span&gt;&lt;span&gt;(LoudDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;1&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;))
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; z &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;pin!&lt;&#x2F;span&gt;&lt;span&gt;(LoudDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;2&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;))
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; w &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; LoudDrop(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;3&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;)
+&lt;&#x2F;span&gt;&lt;span&gt;    {}
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; 3
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; 0
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; 2
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#928374;&quot;&gt;&#x2F;&#x2F; 1
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And once again, this is not what you would expect, but yeah, on current stable version this is already fixed and working as intented&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Also was fixed by dianne &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;145342&quot;&gt;here&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;h3 id=&quot;performance-question&quot;&gt;Performance question&lt;&#x2F;h3&gt;
+&lt;p&gt;Q: Does this compile to the same code as using a block, and&#x2F;or does it have any overhead from creating a block with an &lt;code&gt;if let&lt;&#x2F;code&gt;?&lt;&#x2F;p&gt;
+&lt;p&gt;Well, this is a reasonable question and concern, but answer is no, both of these code examples compile to the same assembly, have the same semantics, and the same drop order&#x2F;scope behavior. So yeah, I&#x27;d say they are identical&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(new_x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; new_x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;150 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; new_x,
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;,
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;0 &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(new_x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt; new_x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;150  &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;                x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; new_x;
+&lt;&#x2F;span&gt;&lt;span&gt;            } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span&gt;{
+&lt;&#x2F;span&gt;&lt;span&gt;                x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span&gt;;
+&lt;&#x2F;span&gt;&lt;span&gt;            }
+&lt;&#x2F;span&gt;&lt;span&gt;        }
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h3 id=&quot;shadowing&quot;&gt;Shadowing&lt;&#x2F;h3&gt;
+&lt;p&gt;Quick quiz: what will this print?&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;4&lt;&#x2F;span&gt;&lt;span&gt;) {
+&lt;&#x2F;span&gt;&lt;span&gt;    x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&amp;amp;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;5&lt;&#x2F;span&gt;&lt;span&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;println!&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;{x}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#b8bb26;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span&gt;),
+&lt;&#x2F;span&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;panic!&lt;&#x2F;span&gt;&lt;span&gt;()
+&lt;&#x2F;span&gt;&lt;span&gt;}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;if you answered 5, you are correct, so yeah, it will just shadow all previous &lt;code&gt;x&lt;&#x2F;code&gt;&#x27;s&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;irrefutable-patterns&quot;&gt;Irrefutable Patterns&lt;&#x2F;h3&gt;
+&lt;p&gt;The compiler will correctly understand if a pattern is irrefutable, so like in this example&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(()) {
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;_ =&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;    }
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;It will give you a nice warning :3&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; style=&quot;background-color:#282828;color:#fdf4c1aa;&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span&gt;warning: irrefutable `&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span&gt;` guard pattern
+&lt;&#x2F;span&gt;&lt;span&gt;  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span&gt;-&amp;gt; src&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;&#x2F;&lt;&#x2F;span&gt;&lt;span&gt;main.rs:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;41&lt;&#x2F;span&gt;&lt;span&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;20
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d3869b;&quot;&gt;41 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|         &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fabd2f;&quot;&gt;Some&lt;&#x2F;span&gt;&lt;span&gt;(x) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span&gt;() &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span&gt;{}
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|                    ^^^^^^^^^^
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;|
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; note: this pattern will always &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt;, so the guard is useless
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; help: consider removing the guard and adding a `&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt;` inside the &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fa5c4b;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; arm
+&lt;&#x2F;span&gt;&lt;span&gt;   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#fe8019;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; note: `#[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#fdf4c1;&quot;&gt;warn&lt;&#x2F;span&gt;&lt;span&gt;(irrefutable_let_patterns)]` on by default
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h1 id=&quot;conclusion-personal-note&quot;&gt;Conclusion &amp;amp; Personal Note&lt;&#x2F;h1&gt;
+&lt;p&gt;I don&#x27;t like conclusions because they usually just repeat everything you already read, so I&#x27;ll keep this short: the feature is nice, the blockers are resolved, around 1.95 hopefully!&lt;&#x2F;p&gt;
+&lt;p&gt;That&#x27;s all! If you like what I&#x27;m doing and want to ✨ support ✨ my work, I have a &lt;a href=&quot;&#x2F;sponsor&quot;&gt;sponsor page&lt;&#x2F;a&gt;. I also just updated it with information on how you can support me without crypto (using crypto, yes xD)&lt;&#x2F;p&gt;
+&lt;p&gt;Working on long-running compiler takes time and focus - which brings me to a small personal note&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;m planning to move to my partner&#x27;s city soon. While I have the funds saved up, any support to make this transition smoother and less stressful would mean the world to me&lt;&#x2F;p&gt;
+&lt;p&gt;With heartfelt thanks to the Rust community!&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>first post</title>
+        <published>2025-12-25T00:00:00+00:00</published>
+        <updated>2025-12-25T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/blog/first/"/>
+        <id>https://kivooeo.github.io/blog/first/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/blog/first/">&lt;p&gt;Hi, &lt;a href=&quot;https:&#x2F;&#x2F;www.reddit.com&#x2F;r&#x2F;rust&#x2F;comments&#x2F;1nck01w&#x2F;im_20_close_to_becoming_a_rust_compiler_team&#x2F;&quot;&gt;last time I wrote about uncertainty&lt;&#x2F;a&gt;. This time, I want to write about what came after. Here&#x27;s an update on my journey after that post - the progress, the difficulties, and where I ended up&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;there-where-it-all-ended-last-time&quot;&gt;There, where it all ended last time&lt;&#x2F;h2&gt;
+&lt;p&gt;After my last post, I received an overwhelming amount of support - both in comments and private messages. Thank you all so much for that. Several people also reached out with job offers, which I genuinely appreciated&lt;&#x2F;p&gt;
+&lt;p&gt;But none of them fit my situation in the end. Some were with established companies abroad that couldn&#x27;t cover relocation costs because of sanctions - something I currently can&#x27;t afford on my own. Others were in areas like crypto and web3: fields I respect, but not ones where my skills or interests truly lie&lt;&#x2F;p&gt;
+&lt;p&gt;So my only sponsor all this time was my mom - in fact, it&#x27;s hard to say how much work she did for Rust without even realizing it&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-place-where-stars-align&quot;&gt;The place where stars align&lt;&#x2F;h2&gt;
+&lt;p&gt;Almost two months after my original post, &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;team&#x2F;pull&#x2F;2059&quot;&gt;I was added to the compiler team&lt;&#x2F;a&gt;. In the four months since my post, I&#x27;ve been working on the compiler steadily - usually 1-3 hours a day, though some bugs demand more. Recently, there was one day when I didn&#x27;t open GitHub at all because I&#x27;d spent the day before and almost half the night until 4 am trying to understand &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;149981&quot;&gt;this bug&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;When I finally fell asleep around 6 am and woke up about 10 hours later, I decided to take a break for the day. It&#x27;s funny - I don&#x27;t remember any other day when I didn&#x27;t open GitHub&lt;&#x2F;p&gt;
+&lt;p&gt;Even on the day I was drafted into the army (a whole story of its own), I spent the morning &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;149160#issuecomment-3560606816&quot;&gt;reviewing a pull request&lt;&#x2F;a&gt; - literally just a few hours before they came for me. They took me to the distribution center, then brought me back home at 9 pm because I &quot;didn&#x27;t suit them&quot;&lt;&#x2F;p&gt;
+&lt;p&gt;And I&#x27;m pretty sure that later that night, I went back to do some other reviews. If they hadn&#x27;t brought me back, I would have returned to Rust in a year LMAO&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-sum-of-all-that-happened&quot;&gt;The sum of all that happened&lt;&#x2F;h2&gt;
+&lt;p&gt;Let&#x27;s talk about how the numbers have changed since the last post, I don&#x27;t like this kind of metrics, but that&#x27;s all we have I guess. At the time of writing, &lt;a href=&quot;https:&#x2F;&#x2F;thanks.rust-lang.org&#x2F;&quot;&gt;thanks.rust-lang.org&lt;&#x2F;a&gt; shows 171 contributions, compared to 88 in my last post - a pretty big jump&lt;&#x2F;p&gt;
+&lt;p&gt;Despite that jump, my ranking didn&#x27;t move as dramatically - from 360th to 235th all-time. I&#x27;ve noticed that the higher you climb, the slower it gets :) I probably won&#x27;t reach the top 200 this year, but looking back at the progress - from my very first pull request to these numbers - still feels really good&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-idleness-that-never-rest&quot;&gt;The idleness that never rest&lt;&#x2F;h2&gt;
+&lt;p&gt;As you may have guessed, I was technically unemployed all this time - though I wouldn&#x27;t call it that myself&lt;&#x2F;p&gt;
+&lt;p&gt;So what did I decide by the end of the year? Considering I need relatively little to live on (about $250-300 a month, since I don&#x27;t pay rent), I decided to return to my previous job teaching IT to children. I left this job at the end of last school year, but it&#x27;s a good fit for my situation&lt;&#x2F;p&gt;
+&lt;p&gt;The job takes only about two days per a week. The salary of $550–600 gives me enough to live on and even save a little for things I enjoy, plus plenty of time to work on the compiler. And the job itself:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;I genuinely like it&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;helps me take my mind off code and remember real life exists - children are the best guide for that&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;removes financial stress&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;The only downside is that it&#x27;s not scalable in the conventional sense. But since I&#x27;m not chasing big numbers - just stability and the opportunity to keep contributing - I think this is a good solution&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-unclenching&quot;&gt;The Unclenching&lt;&#x2F;h2&gt;
+&lt;p&gt;This will be the last chapter before Q&amp;amp;A&lt;&#x2F;p&gt;
+&lt;p&gt;It&#x27;s the end of the year now, and I want to say this has probably been the most emotionally difficult year for me - the army, finances, work, potential relocations, instability&lt;&#x2F;p&gt;
+&lt;p&gt;In about three weeks I&#x27;ll turn 21&lt;&#x2F;p&gt;
+&lt;p&gt;For now, I think I had found an opportunity to work on what I like and make it financially stable without sacrificing the part of myself that wants to work on Rust&lt;&#x2F;p&gt;
+&lt;p&gt;For those who&#x27;ve asked - I&#x27;ve set up a &lt;a href=&quot;&#x2F;sponsor&quot;&gt;sponsor page&lt;&#x2F;a&gt; with the options currently available to me, only crypto :(&lt;&#x2F;p&gt;
+&lt;p&gt;Thank you all for this year. Happy New Year, everyone!&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;to-read-the-stars-first-learn-the-dark&quot;&gt;To read the stars, first learn the dark&lt;&#x2F;h2&gt;
+&lt;p&gt;Q: I want to contribute to the compiler, but it&#x27;s overwhelming. Where do I start?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Don&#x27;t think about the size - just find something specific that interests you and start there&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: But I don&#x27;t know anything. How can I make changes?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Search the codebase for keywords related to what you&#x27;re looking for. Most of the time, something similar already exists - variables, functions, comments, anything that gives you context. If you&#x27;re still stuck, please, don&#x27;t hesitate to ask in Zulip. People are helpful&lt;&#x2F;p&gt;
+&lt;p&gt;And here&#x27;s slightly controversial advice: you can use LLMs to understand code snippets. If you&#x27;re staring at a function and have no idea what it does, an LLM can usually explain it. Ask &quot;why does this work?&quot; or &quot;what is this doing?&quot; But - and this is critical - use it to &lt;em&gt;understand&lt;&#x2F;em&gt; code, not to &lt;em&gt;write&lt;&#x2F;em&gt; code for you. Don&#x27;t submit generated pull requests that you don&#x27;t fully understand. That wastes reviewers&#x27; time and doesn&#x27;t help you learn&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What did you learn about sustaining motivation over months of unpaid work?&lt;&#x2F;p&gt;
+&lt;p&gt;A: In my case, staying motivated was probably the least of my problems, to be honest. Here are some reasons (not in order of importance):&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;the tasks are very interesting&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;there is a lot of room for learning and development&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;I love Rust&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;the community is incredibly cool, and it&#x27;s a pleasure to work with them&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;it&#x27;s just a hobby among my other hobbies that I also devote time to, such as studying other sciences, creativity, or games&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: Any mistakes you made early on that you&#x27;d warn others about?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Yes, and it wasn&#x27;t even about code - it was about communication and the language barrier&lt;&#x2F;p&gt;
+&lt;p&gt;Early on, I was using LLMs heavily to write my comments. Then I got a private message: &quot;Hey, I noticed you write strangely. Don&#x27;t be afraid to make mistakes or write in your own words - just don&#x27;t rely on LLMs so much.&quot; A couple days later, another reviewer commented that my writing seemed sloppy&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;m grateful for that first message. Since then, I&#x27;ve stopped using LLMs for writing and only occasionally use translators for specific words or a grammar checker. It&#x27;s better to write imperfectly in your own voice than perfectly in an AI&#x27;s&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What would you tell someone else stuck in a difficult location&#x2F;situation who wants to do meaningful work?&lt;&#x2F;p&gt;
+&lt;p&gt;A: It really depends on your situation. I had financial support from my mom, which gave me space to contribute full-time. If you don&#x27;t have that safety net, my honest advice is: stabilize your life first. Big projects like Rust aren&#x27;t going anywhere - they&#x27;ll still be there when you&#x27;re ready. Your personal situation matters more&lt;&#x2F;p&gt;
+&lt;p&gt;That said, if you can&#x27;t wait or don&#x27;t want to - even 30 minutes to an hour a day adds up. Consistency matters more than volume. Just be realistic about what you can sustain&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: How did you deal with the uncertainty and financial stress mentally?&lt;&#x2F;p&gt;
+&lt;p&gt;A: The hardest part was feeling like I was consuming resources - relying on my mother&#x27;s support - without creating anything materially useful in return. As someone who values family responsibility, that guilt slowly kept growing. What helped was looking at my actual results. It reminded me that the work was meaningful - even if it didn&#x27;t pay the bills. That kept me from giving up&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What kept you going when things looked hopeless?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Take real breaks. Step away, recharge, and come back fresh. And when I say &quot;real breaks&quot; - I mean actually disconnect. I kept checking GitHub even during mine, which defeated the purpose&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: How do you know when to push through vs. take a break?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Honestly, this is the hardest question because it requires self-awareness, and everyone&#x27;s different. For me, the key signal is autopilot - when I catch myself going through the motions without actually thinking, when I&#x27;m staring at code but not really seeing it. That&#x27;s when I know I need to stop&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: The teaching job solution - how did you figure out what &quot;enough&quot; money&#x2F;time looked like?&lt;&#x2F;p&gt;
+&lt;p&gt;A: I just looked at the numbers. I tracked how much I actually spend each month - bills, food, personal stuff - and it came to around $250-300&lt;&#x2F;p&gt;
+&lt;p&gt;For time, I knew that even an hour a day would be enough for compiler work if I stayed consistent. Working two days a week at the teaching job leaves me plenty of time while still providing the stability I need to contribute regularly&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What surprised you about the response to your first post?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Two things, actually&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;people who tried to spread negativity in the comments&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;the overwhelming support. I really didn&#x27;t expect so many people to reach out with genuine encouragement and offers to help. The community response was beyond anything I imagined&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: Any advice on asking for help vs. going it alone?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Learn to recognize the difference between &quot;I need more time to figure this out&quot; and &quot;I actually need help from someone who knows this area.&quot; Try to solve things yourself first, but don&#x27;t waste days being stuck when someone could answer in five minutes. It&#x27;s a balance, and it takes practice to find it&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What does &quot;звёзды все принадлежат богам&quot; means on your profile?&lt;&#x2F;p&gt;
+&lt;p&gt;A: Ah, this is a line from the song of the same name&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+А звёзды все принадлежат богам
+&lt;p&gt;И их не поймать, они не падают к ногам&lt;&#x2F;p&gt;
+&lt;p&gt;И не уместен торг по рукам&lt;&#x2F;p&gt;
+&lt;p&gt;Птице - небо, человеку - смерть&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;It translates roughly to something like this&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+The stars remain in the keeping of the gods
+&lt;p&gt;Uncatchable, they offer no descent to our level&lt;&#x2F;p&gt;
+&lt;p&gt;There can be no bargains in such things&lt;&#x2F;p&gt;
+&lt;p&gt;A wing has the air; a life has its grave&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;p&gt;Everyone will interpret this in their own way, so I&#x27;ll leave the meaning open. But yes - &quot;the stars all belong to the gods&quot; is the direct translation&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Q: What is the main conclusion you have come to?&lt;&#x2F;p&gt;
+&lt;p&gt;A: If I learned anything this year, it&#x27;s that consistency beats intensity - and that meaning is sometimes enough to keep going. That even small but steady steps are better than rare but wide ones&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Sponsor</title>
+        <published>2025-12-12T00:00:00+00:00</published>
+        <updated>2025-12-12T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/sponsor/"/>
+        <id>https://kivooeo.github.io/sponsor/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/sponsor/">&lt;p&gt;Hi!&lt;&#x2F;p&gt;
+&lt;p&gt;I am a member of the Rust compiler team. Over the past ten months, I have made over 250 contributions, including fixing bugs, improving diagnostics, stabilising features, reviewing pull requests and mentoring new contributors&lt;&#x2F;p&gt;
+&lt;p&gt;I care deeply about Rust, and I plan to continue investing a lot of time in improving the compiler, the test suite and the experience of contributors&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;why-support-me&quot;&gt;Why support me?&lt;&#x2F;h2&gt;
+&lt;p&gt;Your support enables me to dedicate more focused time to compiler development and mentoring. I am transitioning from part-time teaching into a position related to Rust and also moving to another city. Any additional support would make this transition smoother and enable me to maintain my focus on long-term contributions&lt;&#x2F;p&gt;
+&lt;p&gt;If you have found my work, blog posts, mentoring or compiler improvements valuable, this is one way you can help me to continue doing them&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;why-only-crypto&quot;&gt;Why only crypto?&lt;&#x2F;h3&gt;
+&lt;p&gt;I&#x27;m in Russia, where:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;GitHub Sponsors doesn&#x27;t work&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;International payment systems are blocked&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Bank transfers are nearly impossible&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Grant programs can&#x27;t send funds here&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;At the moment, cryptocurrency is the only viable option for receiving support&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;how-to-support&quot;&gt;How to support?&lt;&#x2F;h3&gt;
+&lt;p&gt;SOL: Ao3QhbFqBidnMnhKVHxsETmvWBfpL3oZL876FDArCfaX&lt;&#x2F;p&gt;
+&lt;p&gt;ETC: 0xe1f27D7B1665D88B72874E327e70e4e439751Cfa&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;if-you-really-want-to-support-financially-but-don-t-have-crypto&quot;&gt;If you really want to support financially but don&#x27;t have crypto&lt;&#x2F;h3&gt;
+&lt;p&gt;All you need is&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;visit &lt;a href=&quot;https:&#x2F;&#x2F;simpleswap.io&#x2F;&quot;&gt;this website&lt;&#x2F;a&gt;, no registration or anything needed&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Then choose second tab &quot;Buy&#x2F;Sell Crypto&quot;&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Here you select&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;USD or EUR on top&lt;&#x2F;li&gt;
+&lt;li&gt;SOL on bot&lt;&#x2F;li&gt;
+&lt;li&gt;and paste my wallet in here&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Confirm payment and that&#x27;s it! :3&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;You can see all donations &lt;a href=&quot;https:&#x2F;&#x2F;solscan.io&#x2F;account&#x2F;Ao3QhbFqBidnMnhKVHxsETmvWBfpL3oZL876FDArCfaX&quot;&gt;here&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;other-ways-to-help&quot;&gt;Other ways to help&lt;&#x2F;h3&gt;
+&lt;p&gt;Whether you choose to support me financially, follow my journey or contribute to Rust yourself, I truly appreciate it. Being part of this community means a lot to me!&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>About Me</title>
+        <published>2005-01-19T00:00:00+00:00</published>
+        <updated>2005-01-19T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/about/"/>
+        <id>https://kivooeo.github.io/about/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/about/">&lt;p&gt;Hi, my name is [DATA REDACTED], known as Kivooeo, working as a compiler engineer on Rust Compiler Team on a volunteer basis daily!&lt;&#x2F;p&gt;
+&lt;p&gt;Don&#x27;t know what to say here, but I&#x27;m sure that this page will grow in size over time :3&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+</feed>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+
+  <title> kivo&#x27;s blog </title>
+
+  
+  <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
+  
+  
+</head>
+
+<body>
+  <div class="content">
+    
+    
+    <header>
+      <div class="pull-right">
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">homepage</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+      </div>
+      <div class="title">
+        <strong>kivo&#x27;s blog</strong>
+      </div>
+      <div class="subtitle">for rarely posting silly stuff</div>
+    </header>
+    
+
+    <main>
+      
+<article>
+  <div class="headline">
+    <h1>So You Want to Contribute to Rust</h1>
+    <div class="border"></div>
+    <time datetime=" 2026-01-28" class="date" itemprop="datePublished">
+      28 Jan 2026
+    </time>
+  </div>
+  <div class="articleBody">
+    <p><em>Before we start:</em></p>
+<p>This post is long and detailed on purpose. It's not meant to be read linearly or "from start to finish". If you're just getting started, it's perfectly fine to read only the parts that feel useful right now and ignore the rest until later</p>
+<hr />
+<p>I</p>
+<p>I</p>
+<p>I</p>
+<p>Have you ever opened the <a href="https://github.com/rust-lang/rust">rust-lang/rust</a> repo and felt overwhelmed by the sheer number of files, tests, and issues? Like you're stuck in "<a href="https://en.wikipedia.org/wiki/Analysis_paralysis">analysis paralysis</a>" - so many options and so much complexity that you freeze and don't know where to start. If you feel ambitious and/or have time and energy to help people around the world and support your favorite programming language? Please, pull up a chair - this story is for you!</p>
+<p>To be honest, I personally didn't have that stuck feeling at start, but most people who ask me how to get started do</p>
+<h2 id="finding-something-to-work-on">Finding Something to Work On</h2>
+<p>First, let's go to the <a href="https://github.com/rust-lang/rust">rust-lang/rust</a> repo. (Important note: this applies to other Rust repos like <a href="https://github.com/rust-lang/rust-clippy">clippy</a> or <a href="https://github.com/rust-lang/rustfmt">rustfmt</a> too - they also need contributors) Now stop for a moment and ask yourself: do you know what you want to work on?</p>
+<p>If your answer is "no", that's totally fine! A good first step is to start looking for an interesting task in this huge space of issues. There are tons of things to do - some exciting and some more routine. Here are a few beginner-friendly areas you might start with:</p>
+<ol>
+<li>
+<p><a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AA-diagnostics">Diagnostics</a>: This is the part of the compiler that handles our error messages. You can help make these messages clearer or fix cases where the current message is confusing or misleading</p>
+</li>
+<li>
+<p><a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-needs-test">E-needs-test label</a>: Rust's test suite is enormous but still incomplete. An issue with this label has a bug fixed in the code but no test was added. You can add a test case to capture that fix so it doesn't accidentally break in the future. These tasks usually involve small changes and are very valuable</p>
+</li>
+<li>
+<p><a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-mentor">E-mentor label</a>: This label means a mentor has offered to help with the issue. It's perfect for newcomers because you'll have someone experienced ready to answer your questions as you work on it</p>
+</li>
+<li>
+<p>E-easy: I don't really want to recommend it because this particular label often attracts a lot of attention and a kind of battle for the issue begins</p>
+</li>
+<li>
+<p><a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20label%3AC-enhancement%20no%3Aassignee">C-enhancement</a>: could be useful, it's not always about the code and might be less stressfull</p>
+</li>
+</ol>
+<h2 id="my-first-contribution-story">My First Contribution Story</h2>
+<p>Let me digress a bit and share how I made my first contribution to the Rust compiler. One evening I was relaxing with no plans and watching a <a href="https://www.youtube.com/watch?v=5MIsMbFjvkw">video</a> by Tsoding about Rust. In it, he tried to access a struct field through a raw pointer using the <code>-&gt;</code> operator. In Rust, you can't do that, that's a C/++ thing, but the compiler still knows what you meant to do. In this example, the error message was actually pretty misleading</p>
+<p>So here is what roughly Tsoding was trying to do</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">struct </span><span style="color:#8ec07c;">Point </span><span>{
+</span><span>    </span><span style="color:#fdf4c1;">x</span><span>: </span><span style="color:#fa5c4b;">i32</span><span>,
+</span><span>    </span><span style="color:#fdf4c1;">y</span><span>: </span><span style="color:#fa5c4b;">i32</span><span>,
+</span><span>}
+</span><span>
+</span><span style="color:#fa5c4b;">fn </span><span style="color:#8ec07c;">main</span><span>() {
+</span><span>    </span><span style="color:#fa5c4b;">let</span><span> s </span><span style="color:#fe8019;">=</span><span> Point { x: </span><span style="color:#d3869b;">0</span><span>, y: </span><span style="color:#d3869b;">2 </span><span>};
+</span><span>
+</span><span>    </span><span style="color:#fa5c4b;">let</span><span> p </span><span style="color:#fe8019;">= &amp;</span><span>s </span><span style="color:#fe8019;">as </span><span style="color:#fa5c4b;">*const</span><span> Point;
+</span><span>
+</span><span>    p-&gt;x;
+</span><span>}
+</span></code></pre>
+<p>Before my fix, the diagnostic was looks like this</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>help: `xs` is a raw pointer; try dereferencing it
+</span><span>   </span><span style="color:#fe8019;">|
+</span><span style="color:#fdf4c1;">LL </span><span style="color:#fe8019;">|         </span><span>(</span><span style="color:#fe8019;">*</span><span>p)-&gt;x;
+</span><span>   |         ++  +
+</span></code></pre>
+<p>As you can see here, it correctly asks you to dereference it, but keep a <code>-&gt;</code> which still isn't a valid Rust code</p>
+<hr />
+<p>Suddenly something clicked in my head: "What's stopping me from start right now and fix that error message?", and I got excited by this idea. At that moment I had literally no open-source experience and didn't even know git well, so I went online to learn what a pull request is and how to make one :)</p>
+<p>After some effort, I managed to fork the repository and dive into the code. Then I instantly hit the next roadblock: "There are millions of lines here - how do I find where this error message is generated?" Luckily, luck was on my side. I searched the repository for a unique part of the error text and found a <code>.ftl</code> file - that's a Fluent template for error messages. From there I tracked down the diagnostic struct in the code and finally found where it was being created</p>
+<hr />
+<p>I scribbled together a more-or-less working fix and <a href="https://github.com/rust-lang/rust/pull/139921">submitted a PR</a>. I still didn't understand a lot of the basics - for example, I didn't know how to re-run the tests with the <code>--bless</code> flag to update expected output. Despite my inexperience, the reviewers (who are amazing people) did most of the heavy lifting, but I loved the experience. It was completely new to me. While that first PR was under review, I already started on a second one: I found another small issue and fixed it. The <a href="https://github.com/rust-lang/rust/pull/140094">second PR</a> turned out to be much simpler and got merged even faster than the first</p>
+<p>And that's how I stayed involved in the project. I kept finding and fixing interesting problems, all while chatting and collaborating with many really cool people</p>
+<p>Here is how that error message looks now after my and reviewers efforts:</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>help: `p` is a raw pointer; try dereferencing it
+</span><span>   </span><span style="color:#fe8019;">|
+</span><span style="color:#d3869b;">11 </span><span style="color:#fe8019;">-</span><span>     p-&gt;x;
+</span><span style="color:#d3869b;">11 </span><span style="color:#fe8019;">+     </span><span>(</span><span style="color:#fe8019;">*</span><span>p).x;
+</span></code></pre>
+<p>I</p>
+<p>I</p>
+<p>I</p>
+<p>Thanks for sticking with me through that story! Now, back to the main topic: I want to emphasize something important. Many new contributors (and this is often a mistake) focus on counting merges or commits - chasing those numbers. I believe that's fundamentally the wrong approach and often leads to burnout. I know it sounds weird coming from someone who did 100 merges in the first 6 months just for fun ^^, but honestly, I was just enjoying learning and helping. It was only later that I realized how many that was! Trust me, don't worry about the count - concentrate on the learning and the enjoyment</p>
+<p>btw, there's plenty of work you can do without writing a line of code. For example, we already talked about adding tests for <code>E-needs-test</code> issues. Other contributions include triaging issues, improving documentation, or helping to reproduce bugs (<code>E-needs-mvce</code>). These non-code contributions are also very valuable</p>
+<h2 id="small-practical-step-about-assigning-to-issues">Small practical step about assigning to issues</h2>
+<p>Let's say you've found an issue you like and want to work on it. That's great! To show others that you're already working on it, you can use our bot (actually, there's a real person sitting there assigning labels, who knows). - <code>rustbot</code>, or more specifically <code>@rustbot claim</code> to assign yourself and <code>@rustbot release</code> to remove the assignment from yourself (which is totally fine!).</p>
+<h2 id="big-practical-steps">Big practical steps</h2>
+<p>Once you've claimed an issue, it's time to set up your environment. The first major step is to build the compiler (good <a href="https://rustc-dev-guide.rust-lang.org/building/quickstart.html">page</a> about it). This in average takes 10-15 minutes, usually 5-8 minutes and rarely it's more than 30 minutes, recompiles after small changes is usually faster, so don't worry (also using tip 2 from the end could help you with recompiling time)</p>
+<hr />
+<p>If you already have an idea of what you want to work on (maybe you found a bug that interests you or a feature you want to add), it's hard to give one-size-fits-all advice - it really depends on your chosen task</p>
+<p>One thing I will strongly encourage is: don't be afraid to ask questions. When maintainers see someone who is genuinely interested and trying to understand, we jump in to help and explain as much as we can</p>
+<p>Of course, asking questions out loud can be scary, and it's totally normal to feel shy. Even if you're hesitant, I still recommend live communication: for example, the <a href="https://rust-lang.zulipchat.com/">Rust Zulip chat</a> is great for quick back-and-forth, or you can comment directly on the GitHub issue. If the person who filed the issue is a core team member, they often respond to questions there. Otherwise, someone on the team or the community will likely see your question and help out</p>
+<hr />
+<p>Here's a somewhat surprising tip for those who are really stuck: try asking LLM for help. I know, I know - the community is skeptical about language models and no one likes spammy answers/contributions/PRs. I'm a reviewer too, and I know it very well. The key is <em>how</em> you use it</p>
+<p>Please don't ask the language model to write a code for you if you don't understand it. Instead, ask specific and concrete questions about your task</p>
+<p>For example, "How do I find where this function is defined in the compiler?" or "What does this part of the code do?", language models are pretty good at that. Their suggestions aren't perfect (they usually won't know the quirks of codebase), but they can give you a starting point or point you at the right file. For some people, that little hint is enough to move forward :3</p>
+<hr />
+<p>I recently reviewed a pull request that fixed an error message with the <code>assert!</code> and the returned value. In that case, we needed to detect whether the <code>if</code> came from the <code>assert!</code> or not. The author's method wasn't perfect</p>
+<p>I decided to conduct my own investigation to suggest a better approach, and I realised that I knew what I was looking for, but I couldn't search for it due to my limited knowledge of regex and grep. So, I described what I was looking for to the LLM, which provided me with some <code>rg</code> commands. I simply copied and pasted them into the terminal and started searching with them</p>
+<p>I found what I was looking for! I could also suggest a better, more idiomatic way for the author to rewrite it</p>
+<h2 id="when-you-get-stuck">When You Get Stuck</h2>
+<p>Let's say you've opened the code and started digging in, but after a week you still feel stuck and don't know how to proceed. That's a very common feeling - nothing to panic about</p>
+<p>If you've hit a wall, I suggest asking for help as we've discussed it above: post a question on Zulip or on the GitHub issue itself (remember, you can mention people, or just write a polite question). Often the issue author or someone else will spot it and give pointers</p>
+<hr />
+<p>Another perfectly fine approach is to put the issue aside for now. Maybe you tried to make progress and realized you're blocked or don't have time at the moment</p>
+<p>That happens to everyone. If you do put it on hold, leave a note in the issue about what you tried and what the obstacles were</p>
+<p>For example: "I explored the code around <code>X</code> and tried using <code>Y</code>, but I'm not sure if that's the right approach. I'm stuck on how to proceed", yes, you didn't fix the issue, but you've saved the next person who picks it up a lot of time - they'll know where you left off and what you've already tried</p>
+<h2 id="your-first-pr">Your First PR</h2>
+<p>Now imagine you finally decide to tackle an issue and make your first pull request. You might wonder, "What makes a good PR?", here's the thing: any contribution is welcome. Really! Even if you're just fixing a typo in documentation, adding a test, or cleaning up a bit of code for readability, it's all valuable</p>
+<p>I don't like to divide contributions into "good" or "bad." The more important part, imo, is that you did it yourself: you wrote the code and you wrote the PR description. It might be challenging at first, but we want to see your thought process and how you understand the problem. Write a clear summary of what you did in the PR so reviewers can follow along with your reasoning</p>
+<hr />
+<p>Personal example: in my first PRs, I often made suboptimal code choices (and honestly, I still do sometimes). At first I didn't know most of the codebase. The reviewers were super helpful and always suggested a more idiomatic or correct approach.</p>
+<p>For instance, they might say, "You don't need to implement this yourself - there's already a method doing this", there has never been (and I hope never will be) an occasion where someone yelled at me for writing imperfect code or doing mistakes. We all make mistakes - it's part of learning. Even the core team members make mistakes. The reviewers' job is to help improve the code, not to shame you</p>
+<h2 id="sometimes-even-a-well-crafted-pr-gets-closed">Sometimes Even a Well-Crafted PR Gets Closed</h2>
+<p>Not every contribution ends up merged - and that's okay. Sometimes the code is fine, but the idea behind it isn't what the community wants. Here's a personal example:</p>
+<p>I once submitted a <a href="https://github.com/rust-lang/rust/pull/147102">PR</a> that aimed to suggest using method syntax <code>x.max(y)</code> when someone wrote <code>max(x, y)</code> but hadn't imported the function. The fix itself was clean and worked correctly:</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>   </span><span style="color:#fa5c4b;">else if </span><span>[</span><span style="color:#b8bb26;">&quot;max&quot;</span><span>, </span><span style="color:#b8bb26;">&quot;min&quot;</span><span>].</span><span style="color:#fabd2f;">contains</span><span>(</span><span style="color:#fe8019;">&amp;</span><span>item_str.</span><span style="color:#fabd2f;">as_str</span><span>())
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span>PathSource::Expr(</span><span style="color:#fabd2f;">Some</span><span>(Expr {
+</span><span>            kind: ExprKind::Call(</span><span style="color:#fe8019;">_</span><span>, args),
+</span><span>            span: call_span,
+</span><span>            </span><span style="color:#fe8019;">..
+</span><span>        })) </span><span style="color:#fe8019;">=</span><span> source
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp;</span><span> args.</span><span style="color:#fabd2f;">len</span><span>() </span><span style="color:#fe8019;">== </span><span style="color:#d3869b;">2
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span style="color:#fabd2f;">Some</span><span>(arg0) </span><span style="color:#fe8019;">= </span><span style="color:#fdf4c1;">self</span><span>.r.tcx.sess.</span><span style="color:#fabd2f;">source_map</span><span>().</span><span style="color:#fabd2f;">span_to_snippet</span><span>(args[</span><span style="color:#d3869b;">0</span><span>].span)
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span style="color:#fabd2f;">Some</span><span>(arg1) </span><span style="color:#fe8019;">= </span><span style="color:#fdf4c1;">self</span><span>.r.tcx.sess.</span><span style="color:#fabd2f;">source_map</span><span>().</span><span style="color:#fabd2f;">span_to_snippet</span><span>(args[</span><span style="color:#d3869b;">1</span><span>].span)
+</span><span>    {
+</span><span>        </span><span style="color:#fabd2f;">Some</span><span>((
+</span><span>            </span><span style="color:#fe8019;">*</span><span>call_span,
+</span><span>            </span><span style="color:#b8bb26;">&quot;you may have meant to use the method syntax&quot;</span><span>,
+</span><span>            </span><span style="color:#fabd2f;">format!</span><span>(</span><span style="color:#b8bb26;">&quot;</span><span style="color:#fdf4c1;">{arg0}</span><span style="color:#b8bb26;">.</span><span style="color:#fdf4c1;">{item_str}</span><span style="color:#b8bb26;">(</span><span style="color:#fdf4c1;">{arg1}</span><span style="color:#b8bb26;">)&quot;</span><span>),
+</span><span>        ))
+</span><span>    }
+</span></code></pre>
+<p>Some team members preferred the free function (<code>std::cmp::max(x, y)</code>) because it's symmetric and feels more natural for a binary operation. The PR wasn't rejected because of bad code - it was a stylistic disagreement</p>
+<p>Just keep in mind, that even a "failed" PR is a win if you learn from it. Not every issue needs fixing the way you first think. Sometimes the best contribution is realizing when to step back</p>
+<h2 id="another-example-of-anti-success-of-mine">Another example of anti-success of mine</h2>
+<p>I want to share one more personal example that might be useful, especially if you're worried about "breaking something"</p>
+<p>Recently, I worked on a fairly large <a href="https://github.com/rust-lang/rust/pull/150603">PR</a> that introduced new logic for the MGCA feature. It wasn't a small change: it added quite a bit of new code, went through a long review process, and required several iterations to address feedback. After many discussions and refinements, it finally got merged</p>
+<p>The PR was well reviewed, had good test coverage, and didn't cause any regressions in the existing test suite. At that point, everything looked solid</p>
+<p>A few days ago, I randomly stumbled upon a new <a href="https://github.com/rust-lang/rust/issues/151414">issue</a>. I wasn't pinged, mentioned, or otherwise notified - I just happened to see it while browsing. The issue described a problem that appeared after my PR landed</p>
+<p>And this is the important part: this kind of thing is completely normal</p>
+<p>Even carefully reviewed changes with good tests can expose new edge cases or interactions that weren't obvious at the time. The compiler is a huge, complex system, and no one can predict all consequences upfront</p>
+<p>What matters is not that a bug appeared, but how you react to it</p>
+<p>I assigned the issue to myself and left a short note saying that I'd take a look when I had time. Not because I felt guilty, but because this is simply part of the responsibility that comes with contributing. Fixing follow-up issues, investigating regressions, and iterating on previous changes is a normal and expected part of the process</p>
+<p>I'm sharing this to make one thing clear: introducing a bug does not make you a bad contributor, but ignoring it may</p>
+<h2 id="dealing-with-reviews-and-ci">Dealing with Reviews and CI</h2>
+<p>So you sent your first pull request - great job, that's a big achievement by itself! After that the CI will automatically start, it will build compiler, check <code>tidy</code>, style, all tests, and maybe something else, it took approx. about hour, so.. be ready</p>
+<p>Also, if your CI fails, don't be afraid of it. It's perfectly normal, even for the most skilled top-tier Rust contributors. It's so easy to miss something in the CI checks and cause a failure. Our bot will politely tell you exactly what failed and most likely tell you how to fix it. Just force-push the fix and move on. We all see it daily and fail CI ourselves :3</p>
+<hr />
+<p>Now let's talk about what happens during review. You might worry: "Will strict people come and nitpick every little thing in my code, just to embarrass me?" Absolutely not. If the review process seems picky, keep in mind it's not personal. Reviewers are not judging you as a person; they're focused on the code. When someone asks you to fix a bunch of small issues, it's only to improve the project, not to discourage you</p>
+<p>As a newcomer, you might not immediately understand what a reviewer is asking for. That's okay. Feel free to ask for clarification. Just comment on the review saying something like "Could you help me understand this comment?" Everyone was new once, and they will help you understand the feedback</p>
+<hr />
+<p>Sometimes review comments can sound a bit harsh or blunt. Remember, that's usually just a tone issue - it's much easier to criticize code than to criticize a person. Try to interpret comments as suggestions on the code. If something stings, don't take it personally. You and your contribution matter to us, and we want to see you succeed</p>
+<p>Imagine you get a review and they ask you to make a change, but you're not sure what they mean. Perhaps you've been staring at your editor for days, too intimidated to ask, and you feel like you've lost all sense of direction. Or maybe you immediately reach out and ask a reviewer for a clarification on something really simple, and they point out "oh, it was literally 5 lines above your current code." Both situations happen to everyone</p>
+<p>The balance is: try solving it yourself first, but not at the cost of burning out. If you spend a reasonable time trying to figure out the requested change and still can't do it, that's okay. Just go back to the reviewer and explain what you tried and where you're stuck. For example: "I tried inserting this line here and running the test, but it still fails with X. I'm not sure how to fix it." This shows you made an effort, and trust me, reviewers deeply appreciate when you explain your attempts. It makes it easier for them to help you and keeps the collaboration going smoothly</p>
+<h2 id="useful-resources">Useful resources</h2>
+<ul>
+<li>
+<p><a href="https://rustc-dev-guide.rust-lang.org/">https://rustc-dev-guide.rust-lang.org/</a> - your primary handbook for everything compiler related</p>
+</li>
+<li>
+<p><a href="https://forge.rust-lang.org/">https://forge.rust-lang.org/</a> - policies, procedures, and team information</p>
+</li>
+</ul>
+<h2 id="random-tips">Random tips</h2>
+<p>They are not necesessary, but you may found them useful, they initally were in text, but I decided factor them out to its own chapter</p>
+<h3 id="tip-1">Tip 1</h3>
+<p>there are compiler flag, that might help you figuring out where error message was created <code>-Ztrack-diagnostics</code>, it will show you a line of code in compiler where error was actually created (it's not always 100% helpful, but very likely would be a good starting point, I found this one very useful at my start)</p>
+<p>here is an example</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>warning: function `is_maybe_transmutable` is never used
+</span><span style="color:#fe8019;">-</span><span>-&gt; </span><span style="color:#fe8019;">/</span><span>home</span><span style="color:#fe8019;">/</span><span>gh</span><span style="color:#fe8019;">-</span><span>Kivooeo</span><span style="color:#fe8019;">/</span><span>test_</span><span style="color:#fe8019;">/</span><span>src</span><span style="color:#fe8019;">/</span><span>main.rs:</span><span style="color:#d3869b;">6</span><span>:</span><span style="color:#d3869b;">12
+</span><span style="color:#fe8019;">|
+</span><span style="color:#d3869b;">6 </span><span style="color:#fe8019;">|     </span><span style="color:#fa5c4b;">pub fn </span><span style="color:#8ec07c;">is_maybe_transmutable</span><span>&lt;Src, Dst&gt;()
+</span><span style="color:#fe8019;">|            ^^^^^^^^^^^^^^^^^^^^^
+</span><span style="color:#fe8019;">|
+</span><span style="color:#fe8019;">=</span><span> note: </span><span style="color:#fe8019;">-</span><span>Ztrack</span><span style="color:#fe8019;">-</span><span>diagnostics: created at compiler</span><span style="color:#fe8019;">/</span><span>rustc_passes</span><span style="color:#fe8019;">/</span><span>src</span><span style="color:#fe8019;">/</span><span>dead.rs:</span><span style="color:#d3869b;">1113</span><span>:</span><span style="color:#d3869b;">18
+</span></code></pre>
+<p>as you can see above, there is a note with a specific place</p>
+<h3 id="tip-2">Tip 2</h3>
+<p>Once you have a working build, you can save hours of recompilation time by using the <code>--keep-stage</code> flag. For example</p>
+<p><code>./x b --keep-stage 1</code></p>
+<p>This tells to <code>x</code> to reuse the already-compiled <code>stage 1</code> compiler when you make changes to later stages. Sometimes you still need a full rebuild, but for most iterative work this flag is a lifesaver</p>
+<h2 id="small-conclusion">Small conclusion</h2>
+<p>Starting to contribute to Rust isn't about genius, it's about curiosity and persistence. You don't have to know the entire codebase. You learn, ask questions, and take small steps</p>
+<p>That was the first part. I hope it helped you at least a little and dispelled some of your fears</p>
+<p>In the next part, I want to take a real issue and walk through the process from start to merge, showing the entire process in detail</p>
+
+  </div>
+</article>
+
+    </main>
+  </div>
+
+  <footer>
+    
+    <p> <a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">Kivooeo</a> &mdash; <a
+        href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
+      theme</p>
+    
+  </footer>
+
+  
+</body>
+
+
+</html>

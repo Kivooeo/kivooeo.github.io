@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+
+  <title> kivo&#x27;s blog </title>
+
+  
+  <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
+  
+  
+</head>
+
+<body>
+  <div class="content">
+    
+    
+    <header>
+      <div class="pull-right">
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">homepage</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+      </div>
+      <div class="title">
+        <strong>kivo&#x27;s blog</strong>
+      </div>
+      <div class="subtitle">for rarely posting silly stuff</div>
+    </header>
+    
+
+    <main>
+      
+<article>
+  <div class="headline">
+    <h1>`if let guard` stabilizing path</h1>
+    <div class="border"></div>
+    <time datetime=" 2026-01-25" class="date" itemprop="datePublished">
+      25 Jan 2026
+    </time>
+  </div>
+  <div class="articleBody">
+    <p>Hi all!</p>
+<p>In this blog post, I'm going to talk about a feature I've been working on stabilizing</p>
+<p>The <a href="https://github.com/rust-lang/rust/issues/51114">original tracking issue</a> was created more than 7 years ago</p>
+<p>I've been using Rust for less than 7 years, so I’ll relay what I’ve heard: the feature was stabilized at first, but some drop-order bugs appeared, and it was quickly destabilized. I guess it was then abandoned for a long time, currently, all the drop order bugs have been fixed, and it works correctly</p>
+<p>I encountered some code where I tried to use <code>if let guard</code> and then compiler says</p>
+<blockquote>
+<p>hey, that's not stable, what are you trying to do here?</p>
+</blockquote>
+<p>and I was like</p>
+<blockquote>
+<p>eeh, what do you mean not stable, this is so obvious and... simple, like, how is this different from an <code>if guard</code></p>
+</blockquote>
+<p>After that, I started investigating this feature, this was at the very beginning of my contributing journey somewhere around end of April</p>
+<p>And I got a lot of help from another Rust team member <a href="https://github.com/est31">est31</a>, who, not long before I started looking into this, had finished stabilizing <code>let chains</code> which was a major stabilization for Rust and one of the most requested features overall</p>
+<p>As you can tell from the post's title, it's about the <code>if let guard</code> feature, which I think is a very pretty one :3</p>
+<h3 id="what-is-this-feature-even-about">What is this feature even about?</h3>
+<p>This is a pretty straightforward feature at first sight, I mean very straightforward, it's basically allows you to use <code>let</code> patterns in match guards, like this</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">let</span><span> x </span><span style="color:#fe8019;">= </span><span style="color:#b8bb26;">&quot;42&quot;</span><span>;
+</span><span style="color:#fa5c4b;">let</span><span> y </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">2</span><span>);
+</span><span>
+</span><span style="color:#fa5c4b;">match</span><span> x.parse::&lt;</span><span style="color:#fa5c4b;">i32</span><span>&gt;() {
+</span><span>    </span><span style="color:#fabd2f;">Ok</span><span>(s) </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(y) </span><span style="color:#fe8019;">=</span><span> y </span><span style="color:#fe8019;">=&gt; </span><span>(),
+</span><span>    </span><span style="color:#fabd2f;">Ok</span><span>(s) </span><span style="color:#fe8019;">=&gt; </span><span>(),
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span>(),
+</span><span>}
+</span></code></pre>
+<p>This simple snippet shows what the feature does - nothing complicated, right? So roughly without this feature (there are many ways to rewrite it in Rust, I just pick one that is closest to the code above and what I'd use)</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">let</span><span> x </span><span style="color:#fe8019;">= </span><span style="color:#b8bb26;">&quot;42&quot;</span><span>;
+</span><span style="color:#fa5c4b;">let</span><span> y </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">2</span><span>);
+</span><span>
+</span><span style="color:#fa5c4b;">match</span><span> x.parse::&lt;</span><span style="color:#fa5c4b;">i32</span><span>&gt;() {
+</span><span>    </span><span style="color:#fabd2f;">Ok</span><span>(s) </span><span style="color:#fe8019;">=&gt; </span><span>{
+</span><span>        </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(y) </span><span style="color:#fe8019;">=</span><span> y {
+</span><span>            </span><span style="font-style:italic;color:#928374;">// first branch
+</span><span>        } </span><span style="color:#fa5c4b;">else </span><span>{
+</span><span>            </span><span style="font-style:italic;color:#928374;">// second branch
+</span><span>        }
+</span><span>    }
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span>(),
+</span><span>}
+</span></code></pre>
+<p>Personally I don't like this, I never liked this, just because there is cases where you really don't want to create a block in match arm and just return value</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">struct </span><span style="color:#8ec07c;">A </span><span>{
+</span><span>    </span><span style="color:#fdf4c1;">x</span><span>: </span><span style="color:#fa5c4b;">i32</span><span>,
+</span><span>    </span><span style="color:#fdf4c1;">y</span><span>: </span><span style="color:#fa5c4b;">i32</span><span>,
+</span><span>    </span><span style="color:#fdf4c1;">related_points</span><span>: </span><span style="color:#fabd2f;">Option</span><span>&lt;</span><span style="color:#fabd2f;">Vec</span><span>&lt;A&gt;&gt;,
+</span><span>}
+</span><span>
+</span><span style="color:#fa5c4b;">fn </span><span style="color:#8ec07c;">main</span><span>() {
+</span><span>    </span><span style="color:#fa5c4b;">let</span><span> a </span><span style="color:#fe8019;">=</span><span> A {
+</span><span>        x: </span><span style="color:#d3869b;">2</span><span>,
+</span><span>        y: </span><span style="color:#d3869b;">3</span><span>,
+</span><span>        related_points: </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#fabd2f;">vec!</span><span>[]),
+</span><span>    };
+</span><span>
+</span><span>    </span><span style="color:#fa5c4b;">let</span><span> x </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">42</span><span>);
+</span><span>
+</span><span>    </span><span style="color:#fa5c4b;">match</span><span> x {
+</span><span>        </span><span style="color:#fabd2f;">Some</span><span>(x)
+</span><span>            </span><span style="color:#fa5c4b;">if let</span><span> A { related_points, </span><span style="color:#fe8019;">.. </span><span>} </span><span style="color:#fe8019;">=</span><span> a
+</span><span>                </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span style="color:#fabd2f;">Some</span><span>(points) </span><span style="color:#fe8019;">=</span><span> related_points </span><span style="color:#fe8019;">=&gt;</span><span> points.</span><span style="color:#fabd2f;">len</span><span>()
+</span><span>        </span><span style="color:#fe8019;">_ =&gt; </span><span style="color:#d3869b;">1</span><span>,
+</span><span>    };
+</span><span>}
+</span><span>
+</span></code></pre>
+<p>So, currently you are forced to write a block like this</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match</span><span> x {
+</span><span>    </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fe8019;">=&gt; </span><span>{
+</span><span>        </span><span style="color:#fa5c4b;">if let</span><span> A { related_points, </span><span style="color:#fe8019;">.. </span><span>} </span><span style="color:#fe8019;">=</span><span> a
+</span><span>            </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span style="color:#fabd2f;">Some</span><span>(points) </span><span style="color:#fe8019;">=</span><span> related_points
+</span><span>        {
+</span><span>            points.</span><span style="color:#fabd2f;">len</span><span>()
+</span><span>        } </span><span style="color:#fa5c4b;">else </span><span>{
+</span><span>            </span><span style="color:#d3869b;">1
+</span><span>        }
+</span><span>    }
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span style="color:#d3869b;">1</span><span>,
+</span><span>}
+</span></code></pre>
+<p>As I said before, I don't like this, like, completely</p>
+<p>As you might have already seen, <code>if let guard</code> could use <code>let chains</code>...</p>
+<h3 id="let-chains">Let chains</h3>
+<p>Yes, you get it right, this feature is fully compatible with <code>let chains</code></p>
+<p><code>let chains</code> are actually one of my favorite Rust features, even though I started learning Rust only few years ago, I can definitely tell that <code>let chains</code> were my most used feature since then, I do really <em>love</em> patterns and hope you too!</p>
+<p>So back to <code>let chains</code> in <code>if let guard</code>, you might be wondering, what's so special about them?</p>
+<p>Here’s the answer: <code>let chains</code> were originally restricted to Rust 2024+ editions, so using them in edition 2021 (or earlier) would give an error</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>error: </span><span style="color:#fa5c4b;">let</span><span> chains are only allowed </span><span style="color:#fe8019;">in</span><span> Rust </span><span style="color:#d3869b;">2024</span><span> or later
+</span><span> </span><span style="color:#fe8019;">-</span><span>-&gt; src</span><span style="color:#fe8019;">/</span><span>main.rs:</span><span style="color:#d3869b;">4</span><span>:</span><span style="color:#d3869b;">8
+</span><span>  </span><span style="color:#fe8019;">|
+</span><span style="color:#d3869b;">4 </span><span style="color:#fe8019;">|     </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">42</span><span>) </span><span style="color:#fe8019;">&amp;&amp;</span><span> x.</span><span style="color:#fabd2f;">is_positive</span><span>() {
+</span><span>  | 
+</span></code></pre>
+<p>This will not work as we just tried above, but you already have seen the possibility of using <code>let chains</code> in <code>if let guard</code></p>
+<p>A few questions might come to mind:</p>
+<ol>
+<li>Does that mean that <code>if let guard</code> going to be stabilized in edition 2024+?</li>
+<li>Or does it mean that I could use <code>if let guard</code> in all editions, but using <code>let chains</code> in <code>if let guard</code> will be restricted</li>
+</ol>
+<p>Sooo... my answer will be pretty short and direct: using <code>let chains</code> in <code>if let guard</code> will be allowed in all editions, which means</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">fn </span><span style="color:#8ec07c;">main</span><span>() {
+</span><span>    </span><span style="color:#fa5c4b;">match </span><span style="color:#d3869b;">0 </span><span>{
+</span><span>        </span><span style="color:#fe8019;">_ </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">42</span><span>) </span><span style="color:#fe8019;">&amp;&amp;</span><span> x.</span><span style="color:#fabd2f;">is_negative</span><span>() </span><span style="color:#fe8019;">=&gt; </span><span style="color:#fabd2f;">println!</span><span>(</span><span style="color:#b8bb26;">&quot;wow!&quot;</span><span>),
+</span><span>    }
+</span><span>}
+</span></code></pre>
+<p>This code will work perfectly fine in all editions even though it contains <code>let chains</code></p>
+<p>Important note here:</p>
+<p>Currently, if you try to run this code in edition 2021 or lower, it will give you an error, about <code>let chains</code>, just because, when we are parsing <code>if let guard</code> in compiler we do have a <a href="https://github.com/rust-lang/rust/blob/4d38622e8bec00a9001264c4e9f4723fceca23cb/compiler/rustc_parse/src/parser/expr.rs#L3459">check</a> for <code>let chains</code> to gave such error,</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">if </span><span style="color:#fabd2f;">has_let_expr</span><span>(</span><span style="color:#fe8019;">&amp;</span><span>cond) {
+</span><span>    </span><span style="color:#fa5c4b;">let</span><span> span </span><span style="color:#fe8019;">=</span><span> if_span.</span><span style="color:#fabd2f;">to</span><span>(cond.span);
+</span><span>    </span><span style="color:#fdf4c1;">self</span><span>.psess.gated_spans.</span><span style="color:#fabd2f;">gate</span><span>(sym::if_let_guard, span);
+</span><span>}
+</span></code></pre>
+<p>But don't worry, this will be deleted with stabilization, it's fine that it doesn't work now, it will work as stabilized</p>
+<hr />
+<p>This is snippet from my code that I wrote to fix a diagnostic problem using both of these features, we are using a lot of unstable features in compiler so which is why I was able to do this,</p>
+<p>Btw, if you aren't comfortable with understanding this code, which is 100% fine, I'm not waiting for the reader to be a rustc developer, just try to see the differences in form itself, the semantics are pretty much the same</p>
+<p>The problem was that an <code>Op::AssignOp(assign_op)</code> branch already existed and extending it for this new check would have been messy, since it wasn't just a few lines, so it would have dramatically bloated the original branch, the solution was to create a separate branch and do all the checks right in the match guard:</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>Op::AssignOp(assign_op)
+</span><span>    </span><span style="color:#fa5c4b;">if</span><span> assign_op.node </span><span style="color:#fe8019;">== </span><span>hir::AssignOpKind::AddAssign
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span>hir::ExprKind::Binary(bin_op, left, right) </span><span style="color:#fe8019;">= &amp;</span><span>lhs_expr.kind
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp;</span><span> bin_op.node </span><span style="color:#fe8019;">== </span><span>hir::BinOpKind::And
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">crate</span><span>::op::contains_let_in_chain(left)
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span>hir::ExprKind::Path(hir::QPath::Resolved(</span><span style="color:#fe8019;">_</span><span>, path)) </span><span style="color:#fe8019;">=
+</span><span>            </span><span style="color:#fe8019;">&amp;</span><span>right.kind
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fabd2f;">matches!</span><span>(path.res, hir::def::Res::Local(</span><span style="color:#fe8019;">_</span><span>)) </span><span style="color:#fe8019;">=&gt;
+</span><span>{
+</span><span>    </span><span style="font-style:italic;color:#928374;">// give a nice user friendly error here :3
+</span><span>}
+</span></code></pre>
+<p>Actually, for those who wonder how the same code will looks without all this stuff is... this...</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>Op::AssignOp(assign_op) </span><span style="color:#fe8019;">=&gt; </span><span>{
+</span><span>    </span><span style="color:#fa5c4b;">if</span><span> assign_op.node </span><span style="color:#fe8019;">== </span><span>hir::AssignOpKind::AddAssign {
+</span><span>        </span><span style="color:#fa5c4b;">if let </span><span>hir::ExprKind::Binary(bin_op, left, right) </span><span style="color:#fe8019;">= &amp;</span><span>lhs_expr.kind {
+</span><span>            </span><span style="color:#fa5c4b;">if</span><span> bin_op.node </span><span style="color:#fe8019;">== </span><span>hir::BinOpKind::And {
+</span><span>                </span><span style="color:#fa5c4b;">if crate</span><span>::op::contains_let_in_chain(left) {
+</span><span>                    </span><span style="color:#fa5c4b;">if let </span><span>hir::ExprKind::Path(hir::QPath::Resolved(</span><span style="color:#fe8019;">_</span><span>, path)) </span><span style="color:#fe8019;">=
+</span><span>                        </span><span style="color:#fe8019;">&amp;</span><span>right.kind
+</span><span>                    {
+</span><span>                        </span><span style="color:#fa5c4b;">if </span><span style="color:#fabd2f;">matches!</span><span>(path.res, hir::def::Res::Local(</span><span style="color:#fe8019;">_</span><span>)) {
+</span><span>                            </span><span style="font-style:italic;color:#928374;">// give an nice user friendly error here :3
+</span><span>                        }
+</span><span>                    }
+</span><span>                }
+</span><span>            }
+</span><span>        }
+</span><span>    }
+</span><span>}
+</span></code></pre>
+<p>This is far from perfection! So please use both of these nice features to get closer to it ^^,</p>
+<h3 id="when-this-feature-will-be-out">When this feature will be out?</h3>
+<p>Actually, in perfect scenario, I'd say that this feature will be stable at 1.95, which is very optimistic. There is only one blocker left: documentation, so as far as I can tell, it will be FCP'ed and merged after the documentation is merged, in less optimistic scenario I think it will be ready to 1.96, but, to be honest both of these scenarios are very close and mostly important is very realistic, because all the concerns about drop order have been resolved, there is nothing blocking it</p>
+<h1 id="faq-section">FAQ section</h1>
+<p>This section will answer some of the questions that might come up in your head</p>
+<h3 id="why-are-let-chains-in-if-let-guard-stable-on-all-editions">Why are let chains in if let guard stable on all editions?</h3>
+<p>That's a really good question! It's hard to say with complete confidence since I wasn't working on the original <code>let chains</code> stabilization and I'm not deeply familiar with that part of the compiler. But from what I've learned from the team: <code>let chains</code> in <code>if let guard</code> don't suffer from the drop order issues that affect regular <code>if chains</code> because there's no <code>else</code> block like in <code>if let</code> has that can cause scoping complications.</p>
+<p>To stabilize <code>let chains</code> for Edition 2024, the <code>if_let_rescope</code> feature was introduced to fix drop order behavior in contexts with <code>else</code> blocks. Match guards never had this problem—they're just boolean conditions without an <code>else</code> branch, so temporaries already had predictable scoping. Since <code>if let guard</code> already behaves correctly without needing the rescoping fix, it works consistently across all editions.</p>
+<h3 id="what-was-the-drop-order-bug-that-was-fixed">What was the drop order bug that was fixed?</h3>
+<p>Well, I can't tell about previous stabilization, since not much is known about it, but I can speak about current one</p>
+<p>So in current stabilization, right after it was FCP'ed and I had fixed all (30+) the last nits, and it was sitting in the queue to be merged, <a href="https://github.com/dianne">dianne</a> raised a very good point with drop order,</p>
+<p>I will leave <a href="https://github.com/rust-lang/rust/pull/141295#issuecomment-2968975596">her comment</a> here, just in case someone wants to see it for themselves, but I will explain this a little, honestly this comment is pretty well written as it, but here's the problem:</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match</span><span> SignificantDrop(</span><span style="color:#d3869b;">0</span><span>) {
+</span><span>    x </span><span style="color:#fa5c4b;">if let</span><span> y </span><span style="color:#fe8019;">=</span><span> SignificantDrop(</span><span style="color:#fe8019;">&amp;</span><span>x) </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span style="color:#fabd2f;">unreachable!</span><span>(),
+</span><span>}
+</span></code></pre>
+<p><code>x</code> drops before <code>y</code> which is not obvious and maybe incorrect sometimes, and another case shows the actual problem of inconsistent drop order pretty well</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match </span><span>[LogDrop(o, </span><span style="color:#d3869b;">2</span><span>), LogDrop(o, </span><span style="color:#d3869b;">1</span><span>)] {
+</span><span>    [x, y] </span><span style="color:#fa5c4b;">if let</span><span> z </span><span style="color:#fe8019;">=</span><span> LogDrop(o, </span><span style="color:#d3869b;">3</span><span>) </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span style="color:#fabd2f;">unreachable!</span><span>(),
+</span><span>}
+</span></code></pre>
+<blockquote>
+<p>First, let me explain how to read this, it exactly show drop order by numbers, so <code>LogDrop(o, 1)</code> will drop first, <code>LogDrop(o, 2)</code> second and so on</p>
+</blockquote>
+<p>So here, it will drop everything in the following order <code>y</code> -&gt; <code>x</code> -&gt; <code>z</code>, which is also not correct, you would expect right to left drop order, now, thanks to dianne's efforts, it works as intended and expected: <code>z</code> -&gt; <code>y</code> -&gt; <code>x</code></p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match </span><span>[LogDrop(o, </span><span style="color:#d3869b;">3</span><span>), LogDrop(o, </span><span style="color:#d3869b;">2</span><span>)] {
+</span><span>    [x, y] </span><span style="color:#fa5c4b;">if let</span><span> z </span><span style="color:#fe8019;">=</span><span> LogDrop(o, </span><span style="color:#d3869b;">1</span><span>) </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span>(),
+</span><span>}
+</span></code></pre>
+<blockquote>
+<p>This behavior was fixed by dianne in <a href="https://github.com/rust-lang/rust/pull/143376">this pull request</a></p>
+</blockquote>
+<h3 id="what-is-the-current-drop-order-behavior">What is the current drop order behavior?</h3>
+<p>So yes, as you might have seen above, the drop order is correct and right to left order</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match </span><span>[LogDrop(o, </span><span style="color:#d3869b;">5</span><span>), LogDrop(o, </span><span style="color:#d3869b;">4</span><span>)] {
+</span><span>    [x, y]
+</span><span>        </span><span style="color:#fa5c4b;">if let</span><span> z </span><span style="color:#fe8019;">=</span><span> LogDrop(o, </span><span style="color:#d3869b;">3</span><span>)
+</span><span>            </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let</span><span> w </span><span style="color:#fe8019;">=</span><span> LogDrop(o, </span><span style="color:#d3869b;">2</span><span>)
+</span><span>            </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let</span><span> v </span><span style="color:#fe8019;">=</span><span> LogDrop(o, </span><span style="color:#d3869b;">1</span><span>) </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span>(),
+</span><span>}
+</span></code></pre>
+<p>This is consistent and stable, so there is nothing to worry about. There was also a bug with <code>pin!()</code> that was found also during the limit testing of <code>if let guard</code> by <a href="https://github.com/theemathas">theemathas</a>, so this bug looked like this and it wasn't necessarily a bug in the <code>if let guard</code>, but <code>let chains</code> one</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>    </span><span style="color:#fa5c4b;">if let</span><span> x </span><span style="color:#fe8019;">=</span><span> LoudDrop(</span><span style="color:#b8bb26;">&quot;0&quot;</span><span>)
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let</span><span> y </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">pin!</span><span>(LoudDrop(</span><span style="color:#b8bb26;">&quot;1&quot;</span><span>))
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let</span><span> z </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">pin!</span><span>(LoudDrop(</span><span style="color:#b8bb26;">&quot;2&quot;</span><span>))
+</span><span>        </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let</span><span> w </span><span style="color:#fe8019;">=</span><span> LoudDrop(</span><span style="color:#b8bb26;">&quot;3&quot;</span><span>)
+</span><span>    {}
+</span><span>    </span><span style="font-style:italic;color:#928374;">// 3
+</span><span>    </span><span style="font-style:italic;color:#928374;">// 0
+</span><span>    </span><span style="font-style:italic;color:#928374;">// 2
+</span><span>    </span><span style="font-style:italic;color:#928374;">// 1
+</span></code></pre>
+<p>And once again, this is not what you would expect, but yeah, on current stable version this is already fixed and working as intented</p>
+<blockquote>
+<p>Also was fixed by dianne <a href="https://github.com/rust-lang/rust/pull/145342">here</a></p>
+</blockquote>
+<h3 id="performance-question">Performance question</h3>
+<p>Q: Does this compile to the same code as using a block, and/or does it have any overhead from creating a block with an <code>if let</code>?</p>
+<p>Well, this is a reasonable question and concern, but answer is no, both of these code examples compile to the same assembly, have the same semantics, and the same drop order/scope behavior. So yeah, I'd say they are identical</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>    </span><span style="color:#fa5c4b;">match </span><span style="color:#d3869b;">0 </span><span>{
+</span><span>        </span><span style="color:#fe8019;">_ </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(new_x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">2</span><span>) </span><span style="color:#fe8019;">&amp;&amp;</span><span> new_x </span><span style="color:#fe8019;">&gt; </span><span style="color:#d3869b;">150 </span><span style="color:#fe8019;">=&gt;</span><span> x </span><span style="color:#fe8019;">=</span><span> new_x,
+</span><span>        </span><span style="color:#fe8019;">_ =&gt;</span><span> x </span><span style="color:#fe8019;">= </span><span style="color:#d3869b;">1</span><span>,
+</span><span>    }
+</span></code></pre>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>    </span><span style="color:#fa5c4b;">match </span><span style="color:#d3869b;">0 </span><span>{
+</span><span>        </span><span style="color:#fe8019;">_ =&gt; </span><span>{
+</span><span>            </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(new_x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">2</span><span>) </span><span style="color:#fe8019;">&amp;&amp;</span><span> new_x </span><span style="color:#fe8019;">&gt; </span><span style="color:#d3869b;">150  </span><span>{
+</span><span>                x </span><span style="color:#fe8019;">=</span><span> new_x;
+</span><span>            } </span><span style="color:#fa5c4b;">else </span><span>{
+</span><span>                x </span><span style="color:#fe8019;">= </span><span style="color:#d3869b;">1</span><span>;
+</span><span>            }
+</span><span>        }
+</span><span>    }
+</span></code></pre>
+<h3 id="shadowing">Shadowing</h3>
+<p>Quick quiz: what will this print?</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span style="color:#fa5c4b;">match </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">4</span><span>) {
+</span><span>    x </span><span style="color:#fa5c4b;">if let </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">2</span><span>) </span><span style="color:#fe8019;">&amp;&amp; </span><span style="color:#fa5c4b;">let </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fe8019;">= </span><span style="color:#fabd2f;">Some</span><span>(</span><span style="color:#d3869b;">5</span><span>) </span><span style="color:#fe8019;">=&gt; </span><span style="color:#fabd2f;">println!</span><span>(</span><span style="color:#b8bb26;">&quot;</span><span style="color:#fdf4c1;">{x}</span><span style="color:#b8bb26;">&quot;</span><span>),
+</span><span>    </span><span style="color:#fe8019;">_ =&gt; </span><span style="color:#fabd2f;">panic!</span><span>()
+</span><span>}
+</span></code></pre>
+<p>if you answered 5, you are correct, so yeah, it will just shadow all previous <code>x</code>'s</p>
+<h3 id="irrefutable-patterns">Irrefutable Patterns</h3>
+<p>The compiler will correctly understand if a pattern is irrefutable, so like in this example</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>    </span><span style="color:#fa5c4b;">match </span><span style="color:#fabd2f;">Some</span><span>(()) {
+</span><span>        </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fa5c4b;">if let </span><span>() </span><span style="color:#fe8019;">=</span><span> x </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>        </span><span style="color:#fe8019;">_ =&gt; </span><span>{}
+</span><span>    }
+</span></code></pre>
+<p>It will give you a nice warning :3</p>
+<pre data-lang="rust" style="background-color:#282828;color:#fdf4c1aa;" class="language-rust "><code class="language-rust" data-lang="rust"><span>warning: irrefutable `</span><span style="color:#fa5c4b;">if let</span><span>` guard pattern
+</span><span>  </span><span style="color:#fe8019;">-</span><span>-&gt; src</span><span style="color:#fe8019;">/</span><span>main.rs:</span><span style="color:#d3869b;">41</span><span>:</span><span style="color:#d3869b;">20
+</span><span>   </span><span style="color:#fe8019;">|
+</span><span style="color:#d3869b;">41 </span><span style="color:#fe8019;">|         </span><span style="color:#fabd2f;">Some</span><span>(x) </span><span style="color:#fa5c4b;">if let </span><span>() </span><span style="color:#fe8019;">=</span><span> x </span><span style="color:#fe8019;">=&gt; </span><span>{}
+</span><span>   </span><span style="color:#fe8019;">|                    ^^^^^^^^^^
+</span><span>   </span><span style="color:#fe8019;">|
+</span><span>   </span><span style="color:#fe8019;">=</span><span> note: this pattern will always </span><span style="color:#fa5c4b;">match</span><span>, so the guard is useless
+</span><span>   </span><span style="color:#fe8019;">=</span><span> help: consider removing the guard and adding a `</span><span style="color:#fa5c4b;">let</span><span>` inside the </span><span style="color:#fa5c4b;">match</span><span> arm
+</span><span>   </span><span style="color:#fe8019;">=</span><span> note: `#[</span><span style="color:#fdf4c1;">warn</span><span>(irrefutable_let_patterns)]` on by default
+</span></code></pre>
+<h1 id="conclusion-personal-note">Conclusion &amp; Personal Note</h1>
+<p>I don't like conclusions because they usually just repeat everything you already read, so I'll keep this short: the feature is nice, the blockers are resolved, around 1.95 hopefully!</p>
+<p>That's all! If you like what I'm doing and want to ✨ support ✨ my work, I have a <a href="/sponsor">sponsor page</a>. I also just updated it with information on how you can support me without crypto (using crypto, yes xD)</p>
+<p>Working on long-running compiler takes time and focus - which brings me to a small personal note</p>
+<p>I'm planning to move to my partner's city soon. While I have the funds saved up, any support to make this transition smoother and less stressful would mean the world to me</p>
+<p>With heartfelt thanks to the Rust community!</p>
+
+  </div>
+</article>
+
+    </main>
+  </div>
+
+  <footer>
+    
+    <p> <a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">Kivooeo</a> &mdash; <a
+        href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
+      theme</p>
+    
+  </footer>
+
+  
+</body>
+
+
+</html>
