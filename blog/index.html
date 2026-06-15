@@ -10,7 +10,29 @@
     (function () {
       try {
         var t = localStorage.getItem("theme");
+        if (t === "reading-dark") { t = ""; localStorage.removeItem("theme"); }
+        else if (t === "reading-light") { t = "light"; localStorage.setItem("theme", "light"); }
         if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script>
+
+  
+  <script>
+    (function () {
+      try {
+        var DARK = ["#cf9a8f", "#d6b27a", "#a3c293", "#8fc0bb", "#b6a3dd", "#9cb8db"];
+        var LIGHT = ["#b85c4a", "#a9762a", "#4f7d3e", "#2f867f", "#6d4fb0", "#3f6cb8"];
+        var idx = Math.floor(Math.random() * DARK.length);
+        var vars = ["--link", "--primary-highlight", "--heading", "--post-accent",
+                    "--list-marker", "--code-inline", "--blockquote-border"];
+        window.__applyAccent = function () {
+          var light = document.documentElement.getAttribute("data-theme") === "light";
+          var c = (light ? LIGHT : DARK)[idx];
+          var r = document.documentElement.style;
+          vars.forEach(function (v) { r.setProperty(v, c); });
+        };
+        window.__applyAccent();
       } catch (e) {}
     })();
   </script><meta name="description" content="for rarely posting silly stuff">
@@ -62,9 +84,9 @@
         </div>
         <div class="themes">
           <span class="ctl-label">theme:</span>
-          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
-          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
-          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+          <button type="button" class="theme-btn" data-theme="">dark</button>
+          <button type="button" class="theme-btn" data-theme="light">light</button>
+          <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
         </div>
       </div>
     </header>
@@ -78,8 +100,14 @@
 <ul>
   
   <li>
+    <a href="https://kivooeo.github.io/blog/p2-a-diagnostics/">
+      2026-06-15 => Part 2: Tackling an `A-diagnostics` issue
+    </a>
+  </li>
+  
+  <li>
     <a href="https://kivooeo.github.io/blog/e-needs-test/">
-      2026-02-14 => part 1: Tackling an `E-needs-test` issue
+      2026-02-14 => Part 1: Tackling an `E-needs-test` issue
     </a>
   </li>
   
@@ -91,13 +119,13 @@
   
   <li>
     <a href="https://kivooeo.github.io/blog/if-let-guard/">
-      2026-01-25 => `if let guard` stabilizing path
+      2026-01-25 => The `if let guard` stabilization path
     </a>
   </li>
   
   <li>
     <a href="https://kivooeo.github.io/blog/first/">
-      2025-12-25 => first post
+      2025-12-25 => First post
     </a>
   </li>
   
@@ -139,9 +167,9 @@
   <div class="dock-panel on-scroll dock-right">
     <div class="themes">
       <span class="ctl-label">theme:</span>
-      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
-      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
-      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+      <button type="button" class="theme-btn" data-theme="">dark</button>
+      <button type="button" class="theme-btn" data-theme="light">light</button>
+      <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
     </div>
   </div>
   <script>
@@ -177,6 +205,8 @@
   <script src="https://kivooeo.github.io/js/copycode.js"></script>
   <script src="https://kivooeo.github.io/js/anchors.js"></script>
   <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/mentions.js"></script>
+  <script src="https://kivooeo.github.io/js/wall.js"></script>
   <script src="https://kivooeo.github.io/js/nav.js"></script>
 </body>
 

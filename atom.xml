@@ -4,10 +4,547 @@
     <link rel="self" type="application/atom+xml" href="https://kivooeo.github.io/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://kivooeo.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-02-14T00:00:00+00:00</updated>
+    <updated>2026-06-15T00:00:00+00:00</updated>
     <id>https://kivooeo.github.io/atom.xml</id>
     <entry xml:lang="en">
-        <title>part 1: Tackling an `E-needs-test` issue</title>
+        <title>Part 2: Tackling an `A-diagnostics` issue</title>
+        <published>2026-06-15T00:00:00+00:00</published>
+        <updated>2026-06-15T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://kivooeo.github.io/blog/p2-a-diagnostics/"/>
+        <id>https://kivooeo.github.io/blog/p2-a-diagnostics/</id>
+        
+        <content type="html" xml:base="https://kivooeo.github.io/blog/p2-a-diagnostics/">&lt;p&gt;So it&#x27;s been like a couple months since i wrote the last post about how i tackled an &lt;code&gt;e-needs-test&lt;&#x2F;code&gt; issue&lt;&#x2F;p&gt;
+&lt;p&gt;This time, like i promised, i wanna go through something a bit more user-facing together with you - diagnostics&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-note&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Note&lt;&#x2F;div&gt;
+&lt;p&gt;A diagnostic is that nice, colored explanation the compiler shows you when something goes wrong. Instead of just shouting &quot;error&quot; and walking away, the compiler calmly points at what&#x27;s off and usually nudges you toward a fix&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;p&gt;For example&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0596]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: cannot borrow `*some_string` as mutable, as it is behind a `&amp;amp;` reference&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;main.rs:8:5
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 |&lt;&#x2F;span&gt;     some_string.push_str(&quot;, world&quot;);
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;     &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^^^^ `some_string` is a `&amp;amp;` reference, so it cannot be borrowed as mutable&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: consider changing this to be a mutable reference
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;7 |&lt;&#x2F;span&gt; fn change(some_string: &amp;amp;&lt;span class=&quot;af-green&quot;&gt;mut&lt;&#x2F;span&gt; String) {
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                         &lt;span class=&quot;af-green&quot;&gt;+++&lt;&#x2F;span&gt;
+
+For more information about this error, try `rustc --explain E0596`.
+&lt;span class=&quot;ansi-bold af-red&quot;&gt;error&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: could not compile `f` (bin &quot;f&quot;) due to 1 previous error&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Beautiful, isn&#x27;t it? Well, the thing is they&#x27;re not as perfect as they look at first glance. If we open the &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues?q=is%3Aissue%20state%3Aopen%20label%3AA-diagnostics%20no%3Aassignee&quot;&gt;issues&lt;&#x2F;a&gt; we&#x27;ll see a huge pile of issues on this topic, and even though the rust team puts a lot of effort into making them as user-friendly as possible (you know, those stories where you get 20kb of unreadable output from gcc), teachable and simple - i don&#x27;t think it&#x27;ll ever be possible to make them 100% perfect. But that doesn&#x27;t mean we shouldn&#x27;t improve them at all&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;picking-an-issue&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#picking-an-issue&quot; aria-label=&quot;Anchor link for: picking-an-issue&quot;&gt;Picking an Issue&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;So let&#x27;s grab an issue and try to solve one&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-warning&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Fair warning&lt;&#x2F;div&gt;
+&lt;p&gt;I&#x27;ll say right away, the difficulty in this area ranges from &quot;change one word&quot; to &quot;rewrite half of the borrow checker&quot;. But on average it&#x27;s pretty gentle and somewhere in between, so solving them is interesting and fun (mostly)&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;div class=&quot;admonition admonition-warning&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Another fair warning&lt;&#x2F;div&gt;
+&lt;p&gt;Bear in mind that your experience may differ significantly from mine, because diagnostics permeate the entire compiler, from the lexer right through to MIR; there&#x27;s so much going on that it&#x27;s impossible to take everything into account: parser recovery, name resolution, type checking, trait resolution, borrow checking; and that&#x27;s just a small part of it &amp;gt;&amp;lt;&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;p&gt;But you gotta pick the issue wisely, for the same reason as both warnings above&lt;&#x2F;p&gt;
+&lt;p&gt;This &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;151602&quot;&gt;one&lt;&#x2F;a&gt; caught my eye&lt;&#x2F;p&gt;
+&lt;p&gt;Shortly, right now for this code&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;fn take(_: impl Iterator&amp;lt;0&amp;gt;) {}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The compiler gives this error&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;lib.rs:1:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt; 1 |&lt;&#x2F;span&gt; fn take(_: impl Iterator&amp;lt;0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^ expected 0 generic arguments&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;playground&#x2F;.rustup&#x2F;toolchains&#x2F;nightly-x86_64-unknown-linux-gnu&#x2F;lib&#x2F;rustlib&#x2F;src&#x2F;rust&#x2F;library&#x2F;core&#x2F;src&#x2F;iter&#x2F;traits&#x2F;iterator.rs:40:11
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;40 |&lt;&#x2F;span&gt; pub trait Iterator {
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;           &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^^^^&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt; 1 |&lt;&#x2F;span&gt; fn take(_: impl Iterator&amp;lt;&lt;span class=&quot;af-green&quot;&gt;Item =&lt;&#x2F;span&gt; 0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                          &lt;span class=&quot;af-green&quot;&gt;++++++&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Which is wrong and doesn&#x27;t make any sense&lt;&#x2F;p&gt;
+&lt;p&gt;And this code (it&#x27;s a bit outdated)&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-important&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Important&lt;&#x2F;div&gt;
+&lt;p&gt;MGCA (&lt;code&gt;min_generic_const_args&lt;&#x2F;code&gt;) is a nightly feature that lets you use const values directly as generic arguments - &lt;code&gt;Trait&amp;lt;0&amp;gt;&lt;&#x2F;code&gt; instead of &lt;code&gt;Trait&amp;lt;K = 0&amp;gt;&lt;&#x2F;code&gt;. That&#x27;s what this whole second example lives in&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;#![feature(min_generic_const_args)]
+trait Trait { #[type_const] const K: i32; }
+fn take(_: impl Trait&amp;lt;0&amp;gt;) {}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Spits out this error&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;lib.rs:3:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;3 |&lt;&#x2F;span&gt; fn take(_: impl Trait&amp;lt;0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^--- help: remove the unnecessary generics&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;|&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                 expected 0 generic arguments
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;lib.rs:2:7
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;2 |&lt;&#x2F;span&gt; trait Trait { #[type_const] const K: i32; }
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;       &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Even though it should suggest something like&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;impl Trait&amp;lt;K = 0&amp;gt;
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;starting-to-dig&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#starting-to-dig&quot; aria-label=&quot;Anchor link for: starting-to-dig&quot;&gt;Starting to Dig&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;First thing i make a clean branch&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sh&quot; class=&quot;language-sh &quot;&gt;&lt;code class=&quot;language-sh&quot; data-lang=&quot;sh&quot;&gt;$ git checkout -b fix-mgca-assoc-sugg
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And right away i kick off a compiler build&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sh&quot; class=&quot;language-sh &quot;&gt;&lt;code class=&quot;language-sh&quot; data-lang=&quot;sh&quot;&gt;$ .&amp;#x2F;x b
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;So i don&#x27;t have to do it later, plus I&#x27;ll need to run the code above with the &lt;code&gt;-Ztrack-diagnostics&lt;&#x2F;code&gt; flag to find at least the rough place where the diagnostic gets created&lt;&#x2F;p&gt;
+&lt;p&gt;While the compiler is building, one interesting detail about this issue - @fmease originally wanted to work on this problem but dropped his assignment&lt;&#x2F;p&gt;
+&lt;p&gt;So i messaged him to ask what went wrong and why he decided not to fix it further - as one of the people who knows this area well, he&#x27;ll give the right hints and help out&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-tip&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;For newcomers&lt;&#x2F;div&gt;
+&lt;p&gt;Reaching out to whoever was originally on an issue (or anyone who knows the area) is one of the best moves you can make. In the overwhelming majority of cases people respond super positively - maybe not right away, but positively&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;p&gt;And so, 5 minutes later&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;text&quot; class=&quot;language-text &quot;&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;Build completed successfully in 0:04:57
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;My compiler built (yeah I&#x27;m doing everything in real time, on one screen i have a text editor and on the other a code editor)&lt;&#x2F;p&gt;
+&lt;p&gt;Let&#x27;s run it on the file right away and see what&#x27;s going on&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;gh-Kivooeo@dev-desktop-eu-1 ~&#x2F;r&#x2F;rust (fix-mgca-assoc-sugg) &amp;gt; .&#x2F;build&#x2F;aarch64-unknown-linux-gnu&#x2F;stage1&#x2F;bin&#x2F;rustc -Ztrack-diagnostics &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs --edition 2024
+&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:1:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt; 1 |&lt;&#x2F;span&gt; fn take(_: impl Iterator&amp;lt;0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^ expected 0 generic arguments&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+   = note: -Ztrack-diagnostics: created at compiler&#x2F;rustc_hir_analysis&#x2F;src&#x2F;hir_ty_lowering&#x2F;generics.rs:575:18
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; library&#x2F;core&#x2F;src&#x2F;iter&#x2F;traits&#x2F;iterator.rs:42:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;42 |&lt;&#x2F;span&gt; pub const trait Iterator {
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^^^^&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt; 1 |&lt;&#x2F;span&gt; fn take(_: impl Iterator&amp;lt;&lt;span class=&quot;af-green&quot;&gt;Item =&lt;&#x2F;span&gt; 0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                          &lt;span class=&quot;af-green&quot;&gt;++++++&lt;&#x2F;span&gt;
+
+&lt;span class=&quot;ansi-bold af-red&quot;&gt;error&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: aborting due to 1 previous error&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Let&#x27;s look into &lt;code&gt;compiler&#x2F;rustc_hir_analysis&#x2F;src&#x2F;hir_ty_lowering&#x2F;generics.rs:575:18&lt;&#x2F;code&gt;, hmm, at first glance this looks like exactly the function we need&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;#x2F;&amp;#x2F;&amp;#x2F; Checks that the correct number of generic arguments have been provided.
+&amp;#x2F;&amp;#x2F;&amp;#x2F; This is used both for datatypes and function calls.
+#[instrument(skip(cx, gen_pos), level = &amp;quot;debug&amp;quot;)]
+pub(crate) fn check_generic_arg_count(
+    cx: &amp;amp;dyn HirTyLowerer&amp;lt;&amp;#x27;_&amp;gt;,
+    def_id: DefId,
+    seg: &amp;amp;hir::PathSegment&amp;lt;&amp;#x27;_&amp;gt;,
+    gen_params: &amp;amp;ty::Generics,
+    gen_pos: GenericArgPosition,
+    has_self: bool,
+) -&amp;gt; GenericArgCountResult
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;But looking at the logic, i don&#x27;t see anything that could produce a suggestion like &quot;add &lt;code&gt;Item = 0&lt;&#x2F;code&gt;&quot;&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;finding-where-the-suggestion-is-born&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#finding-where-the-suggestion-is-born&quot; aria-label=&quot;Anchor link for: finding-where-the-suggestion-is-born&quot;&gt;Finding Where the Suggestion Is Born&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;So let&#x27;s grep for the error text &quot;replace the generic bound with the associated type&quot;. This grep found nothing except output in tests, so let&#x27;s shorten it down to &quot;replace the generic&quot; and we immediately found what we need!&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;fn suggest_removing_args_or_generics(&amp;amp;self, err: &amp;amp;mut Diag&amp;lt;&amp;#x27;_, impl EmissionGuarantee&amp;gt;)
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And the specific check inside this function&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;if !self.is_in_trait_impl() {
+    let unused_generics = &amp;amp;self.gen_args.args[self.num_expected_type_or_const_args()..];
+    let suggestions = iter::zip(unused_generics, &amp;amp;unbound_types)
+        .map(|(potential, name)| {
+            (potential.span().shrink_to_lo(), format!(&amp;quot;{name} = &amp;quot;))
+        })
+        .collect::&amp;lt;Vec&amp;lt;_&amp;gt;&amp;gt;();
+
+    if !suggestions.is_empty() {
+        err.multipart_suggestion(
+            format!(
+                &amp;quot;replace the generic bound{s} with the associated type{s}&amp;quot;,
+                s = pluralize!(unbound_types.len())
+            ),
+            suggestions,
+            Applicability::MaybeIncorrect,
+        );
+    }
+}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Here you can clearly see it by the &lt;code&gt;suggestions&lt;&#x2F;code&gt; variable. Now we gotta think where to move next&lt;&#x2F;p&gt;
+&lt;p&gt;We have an interesting call chain through &lt;code&gt;num_expected_type_or_const_args&lt;&#x2F;code&gt; which is used here, but it can&#x27;t really help us much&lt;&#x2F;p&gt;
+&lt;p&gt;I didn&#x27;t give you the full context above. Here&#x27;s what the whole check looks like&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;        &amp;#x2F;&amp;#x2F; If there is a single unbound associated type and a single excess generic param
+        &amp;#x2F;&amp;#x2F; suggest replacing the generic param with the associated type bound
+        if provided_args_matches_unbound_traits &amp;amp;&amp;amp; !unbound_types.is_empty() {
+            &amp;#x2F;&amp;#x2F; Don&amp;#x27;t suggest if we&amp;#x27;re in a trait impl as
+            &amp;#x2F;&amp;#x2F; that would result in invalid syntax (fixes #116464)
+            if !self.is_in_trait_impl() {
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Why did i do that? I didn&#x27;t look at the outer checks right away myself, and the comments give pretty nice hints&lt;&#x2F;p&gt;
+&lt;p&gt;Let&#x27;s look at how &lt;code&gt;unbound_types&lt;&#x2F;code&gt; is defined&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;let unbound_types = self.get_unbound_associated_types();
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Now let&#x27;s look at this method&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;    fn get_unbound_associated_types(&amp;amp;self) -&amp;gt; Vec&amp;lt;String&amp;gt; {
+        if self.tcx.is_trait(self.def_id) { &amp;#x2F;&amp;#x2F; ok that&amp;#x27;s true
+            let items: &amp;amp;AssocItems = self.tcx.associated_items(self.def_id); &amp;#x2F;&amp;#x2F; get assoc item, nice
+            items
+                .in_definition_order() &amp;#x2F;&amp;#x2F; fetch it in def. order
+                .filter(|item| {   &amp;#x2F;&amp;#x2F; filter by:
+                    item.is_type() &amp;#x2F;&amp;#x2F; only assoc types
+                        &amp;amp;&amp;amp; !item.is_impl_trait_in_trait() &amp;#x2F;&amp;#x2F; not trait
+                        &amp;amp;&amp;amp; !self
+                            .gen_args
+                            .constraints
+                            .iter()
+                            .any(|constraint| constraint.ident.name == item.name())
+                            &amp;#x2F;&amp;#x2F;^ exclude associated types that are already bound in the generic args
+                })
+                .map(|item| self.tcx.item_ident(item.def_id).to_string()) &amp;#x2F;&amp;#x2F; map it to string
+                .collect() &amp;#x2F;&amp;#x2F; and collect
+        } else {
+            Vec::default() &amp;#x2F;&amp;#x2F; otherwise just empty vec
+        }
+    }
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Anyway it&#x27;s all clear. Surprisingly this code is pretty readable on its own, so let&#x27;s make a simple change and see what happens?&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;diff&quot; class=&quot;language-diff &quot;&gt;&lt;code class=&quot;language-diff&quot; data-lang=&quot;diff&quot;&gt;- item.is_type()
++ (item.is_type() || item.is_type_const())
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;After that i run this interesting command&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sh&quot; class=&quot;language-sh &quot;&gt;&lt;code class=&quot;language-sh&quot; data-lang=&quot;sh&quot;&gt;$ .&amp;#x2F;x b --keep-stage 1 &amp;amp;&amp;amp; .&amp;#x2F;build&amp;#x2F;aarch64-unknown-linux-gnu&amp;#x2F;stage1&amp;#x2F;bin&amp;#x2F;rustc -Ztrack-diagnostics &amp;#x2F;home&amp;#x2F;gh-Kivooeo&amp;#x2F;test_&amp;#x2F;src&amp;#x2F;main.rs --edition 2024
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;div class=&quot;admonition admonition-tip&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Tip&lt;&#x2F;div&gt;
+&lt;p&gt;Use &lt;code&gt;--keep-stage 1&lt;&#x2F;code&gt; if you don&#x27;t wanna recompile std and core, despite the flags name it works exactly like that&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;p&gt;So... and for some reason it doesn&#x27;t work&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: cannot find attribute `type_const` in this scope&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:2:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;2 |&lt;&#x2F;span&gt; trait Trait { #[type_const] const K: i32; }
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^^^&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+  = note: -Ztrack-diagnostics: created at compiler&#x2F;rustc_resolve&#x2F;src&#x2F;macros.rs:1071:46&lt;&#x2F;pre&gt;
+&lt;p&gt;Ah right, i forgot to mention the code examples are a bit outdated. Now you have to write &lt;code&gt;type const&lt;&#x2F;code&gt;, so the example becomes that&lt;&#x2F;p&gt;
+&lt;p&gt;And voila ✨&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:3:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;3 |&lt;&#x2F;span&gt; fn take(_: impl Trait&amp;lt;0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^ expected 0 generic arguments&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+  = note: -Ztrack-diagnostics: created at compiler&#x2F;rustc_hir_analysis&#x2F;src&#x2F;hir_ty_lowering&#x2F;generics.rs:575:18
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:2:7
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;2 |&lt;&#x2F;span&gt; trait Trait { type const K: i32; }
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;       &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;3 |&lt;&#x2F;span&gt; fn take(_: impl Trait&amp;lt;&lt;span class=&quot;af-green&quot;&gt;K =&lt;&#x2F;span&gt; 0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                       &lt;span class=&quot;af-green&quot;&gt;+++&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;h2 id=&quot;the-actual-fix&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-actual-fix&quot; aria-label=&quot;Anchor link for: the-actual-fix&quot;&gt;The Actual Fix&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;Now the only thing left is to deal with the first case, where we get a really not-great diagnostic&lt;&#x2F;p&gt;
+&lt;p&gt;For that i think we can go back to the zip logic, because it&#x27;s the thing that adds this suggestion. We need to filter it somehow&lt;&#x2F;p&gt;
+&lt;p&gt;Good news, this function is used only in this one specific place, so we can ruthlessly change its signature. I suggest this one&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;fn get_unbound_associated_types(&amp;amp;self) -&amp;gt; Vec&amp;lt;&amp;amp;AssocItem&amp;gt;
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Not a string but the actual &lt;code&gt;AssocItem&lt;&#x2F;code&gt;, so we don&#x27;t have to do &lt;code&gt;(String, bool)&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;And we add a filter after the zip call, that checks the following - if we wanna suggest a const (like &lt;code&gt;0&lt;&#x2F;code&gt; for example) then we should check it&#x27;s a &lt;code&gt;type const&lt;&#x2F;code&gt;, and if we wanna suggest a type then we should check it&#x27;s a type&lt;&#x2F;p&gt;
+&lt;p&gt;Literally just like this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;    .filter(|(potential, item)| match potential {
+        hir::GenericArg::Const(_) =&amp;gt; item.is_type_const(),
+        hir::GenericArg::Type(_) =&amp;gt; item.is_type(),
+        _ =&amp;gt; false,
+    })
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Annd... yeah, it works!&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:1:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt; 1 |&lt;&#x2F;span&gt; fn take(_: impl Iterator&amp;lt;0&amp;gt;) {}
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^ expected 0 generic arguments&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+   = note: -Ztrack-diagnostics: created at compiler&#x2F;rustc_hir_analysis&#x2F;src&#x2F;hir_ty_lowering&#x2F;generics.rs:575:18
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; library&#x2F;core&#x2F;src&#x2F;iter&#x2F;traits&#x2F;iterator.rs:42:17
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;42 |&lt;&#x2F;span&gt; pub const trait Iterator {
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                 &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^^^^&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;No more nonsense suggestion, just the error, exactly what we wanted&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;running-the-test-suite&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#running-the-test-suite&quot; aria-label=&quot;Anchor link for: running-the-test-suite&quot;&gt;Running the Test Suite&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;Great, now let&#x27;s run &lt;code&gt;.&#x2F;x test ui&lt;&#x2F;code&gt; - I&#x27;m expecting a big number of regressions in our test suite&lt;&#x2F;p&gt;
+&lt;p&gt;To my surprise only two tests. Let&#x27;s look at their contents&lt;&#x2F;p&gt;
+&lt;p&gt;First test: &lt;code&gt;tests&#x2F;ui&#x2F;const-generics&#x2F;issues&#x2F;issue-87493.rs&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Looks like this&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;pub trait MyTrait {
+    type Assoc;
+}
+
+pub fn foo&amp;lt;S, T&amp;gt;(_s: S, _t: T)
+where
+    S: MyTrait,
+    T: MyTrait&amp;lt;Assoc == S::Assoc&amp;gt;,
+    &amp;#x2F;&amp;#x2F;~^ ERROR: expected one of `,` or `&amp;gt;`, found `==`
+    &amp;#x2F;&amp;#x2F;~| ERROR: trait takes 0 generic arguments but 1 generic argument was supplied
+{
+}
+
+fn main() {}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The original error was this&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0107]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: trait takes 0 generic arguments but 1 generic argument was supplied&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;main.rs:8:8
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 |&lt;&#x2F;span&gt;     T: MyTrait&amp;lt;Assoc == S::Assoc&amp;gt;,
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;        &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^ expected 0 generic arguments&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-green&quot;&gt;note&lt;&#x2F;span&gt;: trait defined here, with 0 generic parameters
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;main.rs:1:11
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;1 |&lt;&#x2F;span&gt; pub trait MyTrait {
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;           &lt;span class=&quot;ansi-bold af-green&quot;&gt;^^^^^^^&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 |&lt;&#x2F;span&gt;     T: MyTrait&amp;lt;&lt;span class=&quot;af-green&quot;&gt;Assoc =&lt;&#x2F;span&gt; Assoc == S::Assoc&amp;gt;,
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                &lt;span class=&quot;af-green&quot;&gt;+++++++&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;You know, just for fun i decided to try writing what the compiler suggests here, and you know what i got? You&#x27;ll never guess...&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 |&lt;&#x2F;span&gt;     T: MyTrait&amp;lt;&lt;span class=&quot;af-green&quot;&gt;Assoc =&lt;&#x2F;span&gt; Assoc = Assoc == S::Assoc&amp;gt;,
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                &lt;span class=&quot;af-green&quot;&gt;+++++++&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I tried it. The compiler responded with an even more broken version of the same suggestion - &lt;code&gt;Assoc = Assoc = Assoc == S::Assoc&lt;&#x2F;code&gt;. A beginner could sit there applying this forever... After our fix this problem got fixed and now it (kinda) correctly suggests the fix&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: expected one of `,` or `&amp;gt;`, found `==`&lt;&#x2F;span&gt;
+ &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs:8:22
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 |&lt;&#x2F;span&gt;     T: MyTrait&amp;lt;Assoc == S::Assoc&amp;gt;,
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;                      &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^ expected one of `,` or `&amp;gt;`&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+  = note: -Ztrack-diagnostics: created at compiler&#x2F;rustc_parse&#x2F;src&#x2F;parser&#x2F;diagnostics.rs:2528:34
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: if you meant to use an associated type binding, replace `==` with `=`
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 &lt;&#x2F;span&gt;&lt;span class=&quot;af-red&quot;&gt;-     T: MyTrait&amp;lt;Assoc == S::Assoc&amp;gt;,&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;8 &lt;&#x2F;span&gt;&lt;span class=&quot;af-green&quot;&gt;+     T: MyTrait&amp;lt;Assoc = S::Assoc&amp;gt;,&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;  |&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;At least it compiles if you do what the compiler asks :)&lt;&#x2F;p&gt;
+&lt;p&gt;Now let&#x27;s look at the second test&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;#x2F;&amp;#x2F;! This test used to ICE: #121134
+&amp;#x2F;&amp;#x2F;! The issue is that we&amp;#x27;re trying to prove a projection, but there&amp;#x27;s
+&amp;#x2F;&amp;#x2F;! no bound for the projection&amp;#x27;s trait, and the projection has the wrong
+&amp;#x2F;&amp;#x2F;! kind of generic parameter (lifetime vs type).
+&amp;#x2F;&amp;#x2F;! When actually calling the function with those broken bounds, trying to
+&amp;#x2F;&amp;#x2F;! instantiate the bounds with inference vars would ICE.
+#![feature(unboxed_closures)]
+
+trait Output&amp;lt;&amp;#x27;a&amp;gt; {
+    type Type;
+}
+
+struct Wrapper;
+
+impl Wrapper {
+    fn do_something_wrapper&amp;lt;O, F&amp;gt;(&amp;amp;mut self, _: F)
+    where
+        F: for&amp;lt;&amp;#x27;a&amp;gt; FnOnce(&amp;lt;F as Output&amp;lt;i32&amp;gt;&amp;gt;::Type),
+        &amp;#x2F;&amp;#x2F;~^ ERROR: trait takes 0 generic arguments but 1 generic argument was supplied
+    {
+    }
+}
+
+fn main() {
+    let mut wrapper = Wrapper;
+    wrapper.do_something_wrapper(|value| ());
+}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Anyway, some complicated code, but what&#x27;s interesting, right now the compiler suggests the following - add &lt;code&gt;Type = &lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: replace the generic bound with the associated type
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;18 |&lt;&#x2F;span&gt;         F: for&amp;lt;&#x27;a&amp;gt; FnOnce(&amp;lt;F as Output&amp;lt;&lt;span class=&quot;af-green&quot;&gt;Type =&lt;&#x2F;span&gt; i32&amp;gt;&amp;gt;::Type),
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                                        &lt;span class=&quot;af-green&quot;&gt;++++++&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And after we add &lt;code&gt;Type = i32&lt;&#x2F;code&gt;, it suggests this&lt;&#x2F;p&gt;
+&lt;pre class=&quot;term&quot;&gt;&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0229]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: associated item constraints are not allowed here&lt;&#x2F;span&gt;
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; src&#x2F;main.rs:18:40
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;18 |&lt;&#x2F;span&gt;         F: for&amp;lt;&#x27;a&amp;gt; FnOnce(&amp;lt;F as Output&amp;lt;Type = i32&amp;gt;&amp;gt;::Type),
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;                                        &lt;span class=&quot;ansi-bold af-red&quot;&gt;^^^^^^^^^^ associated item constraint not allowed here&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-cyan&quot;&gt;help&lt;&#x2F;span&gt;: consider removing this associated item binding
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span class=&quot;af-red&quot;&gt;-         F: for&amp;lt;&#x27;a&amp;gt; FnOnce(&amp;lt;F as Output&amp;lt;Type = i32&amp;gt;&amp;gt;::Type),&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;18 &lt;&#x2F;span&gt;&lt;span class=&quot;af-green&quot;&gt;+         F: for&amp;lt;&#x27;a&amp;gt; FnOnce(&amp;lt;F as Output&amp;lt;&amp;gt;&amp;gt;::Type),&lt;&#x2F;span&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;What...? Yeah, this was kinda to the point about diagnostics not being perfect in the compiler. Anyway i ran around in circles for a pretty long time trying to do what the compiler suggests, and in the end it just didn&#x27;t compile&lt;&#x2F;p&gt;
+&lt;p&gt;Anyway, i think this isn&#x27;t our problem anymore :)&lt;&#x2F;p&gt;
+&lt;p&gt;The very fact that the compiler no longer suggests adding &lt;code&gt;Type =&lt;&#x2F;code&gt; here is already a win, and the other diagnostics fall out of scope of this fix&lt;&#x2F;p&gt;
+&lt;p&gt;So with a calm soul we update the tests so they run with the new expected output. For the first one we just run with &lt;code&gt;--bless&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sh&quot; class=&quot;language-sh &quot;&gt;&lt;code class=&quot;language-sh&quot; data-lang=&quot;sh&quot;&gt;$ .&amp;#x2F;x test tests&amp;#x2F;ui&amp;#x2F;const-generics&amp;#x2F;issues&amp;#x2F;issue-87493.rs tests&amp;#x2F;ui&amp;#x2F;traits&amp;#x2F;generic_param_mismatch_in_unsatisfied_projection.rs --bless
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And now we look&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;text&quot; class=&quot;language-text &quot;&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;running 2 tests
+..
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 21417 filtered out; finished in 51.58ms
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Perfect!&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;wrapping-up&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#wrapping-up&quot; aria-label=&quot;Anchor link for: wrapping-up&quot;&gt;Wrapping Up&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;Now, the last thing left to do is write a new test and add @fmease&#x27;s suggestion to change the wording of this error&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;diff&quot; class=&quot;language-diff &quot;&gt;&lt;code class=&quot;language-diff&quot; data-lang=&quot;diff&quot;&gt;format!(
+-    &amp;quot;replace the generic bound{s} with the associated type{s}&amp;quot;,
++    &amp;quot;turn the generic argument{s} into an associated item binding{s}&amp;quot;,
+    s = pluralize!(unbound_types.len())
+)
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Now let&#x27;s add a new test, if you don&#x27;t know how to do that i suggest you read the &lt;a href=&quot;&#x2F;blog&#x2F;e-needs-test&#x2F;&quot;&gt;previous post&lt;&#x2F;a&gt; about adding tests!&lt;&#x2F;p&gt;
+&lt;p&gt;Here&#x27;s what our test will look like&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;#x2F;&amp;#x2F;! Regression test for &amp;lt;https:&amp;#x2F;&amp;#x2F;github.com&amp;#x2F;rust-lang&amp;#x2F;rust&amp;#x2F;issues&amp;#x2F;151602&amp;gt;.
+
+#![feature(min_generic_const_args)]
+
+trait Trait {
+    type const K: i32;
+}
+fn take(_: impl Trait&amp;lt;0&amp;gt;) {}
+&amp;#x2F;&amp;#x2F;~^ ERROR: trait takes 0 generic arguments but 1 generic argument was supplied [E0107]
+
+fn main() {}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Since we changed the error wording, we&#x27;ll need to run all the tests again and update the &lt;code&gt;.stderr&lt;&#x2F;code&gt; files for all of them&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;sh&quot; class=&quot;language-sh &quot;&gt;&lt;code class=&quot;language-sh&quot; data-lang=&quot;sh&quot;&gt;$ .&amp;#x2F;x test ui --bless
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I think after that the only thing left is to open the pull request and assign @fmease to it (using &lt;code&gt;r?&lt;&#x2F;code&gt;)&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-happens-next&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#what-happens-next&quot; aria-label=&quot;Anchor link for: what-happens-next&quot;&gt;What Happens Next?&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;While the tests are running, let&#x27;s talk about this for a sec. I actually admit there might be some edge cases in this fix or the test, I&#x27;m not super familiar with the MGCA feature, even though i wrote the Ctor support and a couple other things for it. That was more thanks to the great mentorship and review from @BoxyUwU&lt;&#x2F;p&gt;
+&lt;p&gt;Also a lot of useful info on this matter was said &lt;a href=&quot;&#x2F;blog&#x2F;e-needs-test&#x2F;#what-to-expect-during-review&quot;&gt;here&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Well, it seems tests are compiled fine, except one test which requiers me to update the error:&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;diff&quot; class=&quot;language-diff &quot;&gt;&lt;code class=&quot;language-diff&quot; data-lang=&quot;diff&quot;&gt;fn trait_bound_generic&amp;lt;I: T&amp;lt;u8, u16&amp;gt;&amp;gt;(_i: I) {
+    &amp;#x2F;&amp;#x2F;~^ ERROR trait takes 0 generic arguments
+-    &amp;#x2F;&amp;#x2F;~| HELP replace the generic bounds with the associated types
++    &amp;#x2F;&amp;#x2F;~| HELP turn the generic arguments into an associated item bindings
+}
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;So it felt to me that fix is very ready for being published, let&#x27;s run &lt;code&gt;.&#x2F;x test tidy&lt;&#x2F;code&gt; to make very sure before opening a PR. Good, &lt;code&gt;tidy&lt;&#x2F;code&gt; seems fine about it&lt;&#x2F;p&gt;
+&lt;pre&gt;&lt;code&gt;Build completed successfully in 0:00:41
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Next step is to open a PR (done &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;pull&#x2F;157908&quot;&gt;here&lt;&#x2F;a&gt;), assign @fmease with &lt;code&gt;r?&lt;&#x2F;code&gt; and... well, that&#x27;s basically it - now we wait :)&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;the-review-comes-back&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-review-comes-back&quot; aria-label=&quot;Anchor link for: the-review-comes-back&quot;&gt;The Review Comes Back&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;So the wait wasn&#x27;t that long actually, and @fmease left a few comments. And honestly this is the part i enjoy the most - when someone who knows the area way better than you looks at your code and points at the spots you were too eager to skim past&lt;&#x2F;p&gt;
+&lt;p&gt;The first and the most important one was about my filter. Remember this part?&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;.filter(|(potential, item)| match potential {
+    hir::GenericArg::Const(_) =&amp;gt; item.is_type_const(),
+    hir::GenericArg::Type(_) =&amp;gt; item.is_type(),
+    _ =&amp;gt; false,
+})
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Looks fine right? Well, the thing is i was zipping &lt;code&gt;unused_generics&lt;&#x2F;code&gt; with &lt;code&gt;unbound_types&lt;&#x2F;code&gt; &lt;strong&gt;by position&lt;&#x2F;strong&gt;, and only then filtering by kind. But the assoc items come in definition order, and the generic args come in the order the user wrote them - there&#x27;s no reason these two line up. @fmease gave a really clean example&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;trait Trait { type A; type const B: usize; }
+fn f&amp;lt;T: Trait&amp;lt;(), 0&amp;gt;&amp;gt;(); &amp;#x2F;&amp;#x2F; my PR emits a suggestion
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;trait Trait { type const A: usize; type B; }
+fn f&amp;lt;T: Trait&amp;lt;(), 0&amp;gt;&amp;gt;(); &amp;#x2F;&amp;#x2F; my PR does *not* emit one
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;In the second case the zip produces pairs like &lt;code&gt;[(TyAssocConst, Ty), (AssocTy, Const)]&lt;&#x2F;code&gt; and neither pair survives the filter, so we just silently drop a perfectly good suggestion. Oops&lt;&#x2F;p&gt;
+&lt;p&gt;The fix is to stop pairing by position entirely. Instead i split the unbound items into two lazy iterators by kind, and let each generic arg pull the next item of its &lt;strong&gt;own&lt;&#x2F;strong&gt; kind&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;let mut unbound_assoc_consts = unbound_assoc_items.iter().filter(|item| item.is_type_const());
+let mut unbound_assoc_types = unbound_assoc_items.iter().filter(|item| item.is_type());
+let suggestions = unused_generics
+    .iter()
+    .filter_map(|potential| {
+        let item = match potential {
+            hir::GenericArg::Const(_) =&amp;gt; unbound_assoc_consts.next(),
+            hir::GenericArg::Type(_) =&amp;gt; unbound_assoc_types.next(),
+            _ =&amp;gt; None,
+        }?;
+        Some((
+            potential.span().shrink_to_lo(),
+            &amp;#x2F;&amp;#x2F; FIXME: This doesn&amp;#x27;t account for generic associated items
+            format!(&amp;quot;{} = &amp;quot;, self.tcx.item_ident(item.def_id)),
+        ))
+    })
+    .collect::&amp;lt;Vec&amp;lt;_&amp;gt;&amp;gt;();
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Each &lt;code&gt;.next()&lt;&#x2F;code&gt; advances its own cursor, so a type arg always grabs the next assoc type and a const the next assoc const, no matter how they&#x27;re interleaved - and &lt;code&gt;?&lt;&#x2F;code&gt; just bails (emitting nothing) if a queue runs dry instead of mispairing&lt;&#x2F;p&gt;
+&lt;p&gt;The second comment was a tiny but nice one. The wording&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;quot;turn the generic argument{s} into an associated item binding{s}&amp;quot;
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;reads totally fine in singular, but the moment you have more than one it becomes &quot;turn the generic arguments into &lt;strong&gt;an&lt;&#x2F;strong&gt; associated item bindings&quot; which is, well, not english. So the &lt;code&gt;an&lt;&#x2F;code&gt; should only show up when there&#x27;s exactly one. Quick fix&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;let s = pluralize!(suggestions.len());
+let article = if suggestions.len() == 1 { &amp;quot;an &amp;quot; } else { &amp;quot;&amp;quot; };
+err.multipart_suggestion(
+    format!(&amp;quot;turn the generic argument{s} into {article}associated item binding{s}&amp;quot;),
+    suggestions,
+    Applicability::MaybeIncorrect,
+);
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Also notice i switched the pluralization from &lt;code&gt;unbound_types.len()&lt;&#x2F;code&gt; to &lt;code&gt;suggestions.len()&lt;&#x2F;code&gt; - now that not every excess arg necessarily produces a binding, the count should reflect what we actually suggest&lt;&#x2F;p&gt;
+&lt;p&gt;Then there was the comment above the whole block, which was honestly just a bit outdated. It still said&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;#x2F;&amp;#x2F; If there is a single unbound associated type and a single excess generic param
+&amp;#x2F;&amp;#x2F; suggest replacing the generic param with the associated type bound
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;but the code handles multiple of them now, and assoc consts too, not only types. @fmease suggested generalizing it&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&amp;#x2F;&amp;#x2F; If there is an identical amount of unbound associated items and excess generic args
+&amp;#x2F;&amp;#x2F; suggest turning the generic args into associated item bindings.
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;with a funny little caveat that even &quot;identical amount&quot; isn&#x27;t strictly true anymore after my kind-matching change (equal counts no longer guarantee a full set of bindings, since a type only pairs with a type and a const with a const). But it&#x27;s still way better than the old wording, so in it goes&lt;&#x2F;p&gt;
+&lt;p&gt;And the last one - @fmease asked me to drop a &lt;code&gt;&#x2F;&#x2F; FIXME: This doesn&#x27;t account for generic associated items&lt;&#x2F;code&gt; right above the &lt;code&gt;format!(&quot;{} = &quot;, …)&lt;&#x2F;code&gt;, since that&#x27;s the bit that can&#x27;t express a generic assoc item like &lt;code&gt;type Assoc&amp;lt;T&amp;gt;;&lt;&#x2F;code&gt; (we&#x27;d produce &lt;code&gt;Assoc =&lt;&#x2F;code&gt; with nowhere to put its generics). A separate (preexisting) bug, but a &lt;code&gt;FIXME&lt;&#x2F;code&gt; is the honest thing to leave behind&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-tip&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Tip&lt;&#x2F;div&gt;
+&lt;p&gt;Don&#x27;t be shy to leave &lt;code&gt;FIXME&lt;&#x2F;code&gt;s. A &lt;code&gt;FIXME&lt;&#x2F;code&gt; that names a real limitation is much more useful than pretending the code is perfect - it&#x27;s basically a little note to the next person (or future you)&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;h2 id=&quot;round-two-of-nits&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#round-two-of-nits&quot; aria-label=&quot;Anchor link for: round-two-of-nits&quot;&gt;Round Two of Nits&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;I pinged &lt;code&gt;@rustbot ready&lt;&#x2F;code&gt; and, like clockwork, a second smaller round came back. This one was the comfy kind - all naming and wording, nothing scary&lt;&#x2F;p&gt;
+&lt;p&gt;The running theme was &quot;make names tell the truth&quot;: a variable still called &lt;code&gt;unbound_types&lt;&#x2F;code&gt; was actually holding assoc consts too by now, so it got an honest rename, a one-off helper with a misleading name got inlined away, and a comment that said generic &lt;em&gt;param&lt;&#x2F;em&gt; where it meant generic &lt;em&gt;arg&lt;&#x2F;em&gt; got fixed (this corner of the compiler mixes those two up constantly)&lt;&#x2F;p&gt;
+&lt;div class=&quot;admonition admonition-important&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Important&lt;&#x2F;div&gt;
+&lt;p&gt;A big chunk of review comments are exactly this - a name, a word, a stale comment. It&#x27;s not &quot;you did it wrong&quot;, it&#x27;s just how code stays readable for whoever touches it next, and it&#x27;s the easiest kind of feedback to address&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;p&gt;He also asked for one more test: that we &lt;em&gt;don&#x27;t&lt;&#x2F;em&gt; suggest nonsense for a plain &lt;code&gt;Iterator&amp;lt;0&amp;gt;&lt;&#x2F;code&gt;. So i extended some test under &lt;code&gt;tests&#x2F;ui&#x2F;suggestions&#x2F;&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre data-lang=&quot;rust&quot; class=&quot;language-rust &quot;&gt;&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;pub trait T&amp;lt;X, Y&amp;gt; {
+    type A;
+    type B;
+    type C;
+}
+pub struct Foo {
+    i: Box&amp;lt;dyn T&amp;lt;usize, usize, usize, usize, B = usize&amp;gt;&amp;gt;,
+    &amp;#x2F;&amp;#x2F;~^ ERROR trait takes 2 generic arguments but 4 generic arguments were supplied
+}
+
+fn take(_: impl Iterator&amp;lt;0&amp;gt;) {} &amp;#x2F;&amp;#x2F; &amp;lt;- here is what i&amp;#x27;ve actually added !!!
+&amp;#x2F;&amp;#x2F;~^ ERROR trait takes 0 generic arguments but 1 generic argument was supplied
+
+fn main() {}
+
+&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The whole point is the &lt;code&gt;.stderr&lt;&#x2F;code&gt; has &lt;em&gt;no&lt;&#x2F;em&gt; &quot;turn the generic argument&quot; help - &lt;code&gt;Iterator&lt;&#x2F;code&gt; has an assoc type but no assoc const, so the const queue is empty and we suggest nothing, exactly as intended&lt;&#x2F;p&gt;
+&lt;p&gt;After all that the suggestion finally does the right thing even in the weird ordering cases, the grammar is correct in both singular and plural, the names say what they mean, and the comment doesn&#x27;t lie anymore&lt;&#x2F;p&gt;
+&lt;p&gt;And now this is ready for merge 🎉 🎉 🎉&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;what-i-hope-you-take-from-this&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#what-i-hope-you-take-from-this&quot; aria-label=&quot;Anchor link for: what-i-hope-you-take-from-this&quot;&gt;What I Hope You Take From This&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;If there&#x27;s one thing i want you to leave with, it&#x27;s that you really don&#x27;t need to understand the whole compiler to make a diagnostic better. We took something that suggested complete nonsense, followed &lt;code&gt;-Ztrack-diagnostics&lt;&#x2F;code&gt; to the rough spot, found the exact code with a lazy grep, and made the suggestion only show up when it actually makes sense&lt;&#x2F;p&gt;
+&lt;p&gt;A-diagnostics issues are great for this - a lot of them sit comfortably in the easy-to-medium range, they&#x27;re user-facing so your work is immediately visible, and the people you&#x27;ll meet along the way are genuinely kind&lt;&#x2F;p&gt;
+&lt;p&gt;So if any of this looked fun - go pick one, grep around, ask questions, and don&#x27;t be afraid to be wrong. That&#x27;s literally how all of us started&lt;&#x2F;p&gt;
+&lt;p&gt;And honestly, if you wanna try one but feel a little lost - you can just assign me as your reviewer with &lt;code&gt;r? @Kivooeo&lt;&#x2F;code&gt; (or ping me anywhere), i&#x27;m always happy to mentor newcomers on any kind of issues&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;On a side note, if you want to support future blog posts, my work on the compiler and mentoring newcomers, i&#x27;d be really grateful if you took a look at my &lt;a href=&quot;&#x2F;sponsor&quot;&gt;sponsor page&lt;&#x2F;a&gt; &amp;lt;3&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Part 1: Tackling an `E-needs-test` issue</title>
         <published>2026-02-14T00:00:00+00:00</published>
         <updated>2026-02-14T00:00:00+00:00</updated>
         
@@ -30,21 +567,27 @@
 &lt;p&gt;So I&#x27;ve selected an &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&quot;&gt;issue&lt;&#x2F;a&gt;, now let&#x27;s see what&#x27;s going on. According to the issue description, this code used to cause the compiler to panic when trying to compile it. However, according to the last comment, the problem was fixed in one of the pull requests, even though the issue itself is still open. Therefore, we want to add a test using this code example that used to panic, to lock in the new correct behavior and ensure that it now works as expected&lt;&#x2F;p&gt;
 &lt;h2 id=&quot;tackling-the-problem&quot;&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#tackling-the-problem&quot; aria-label=&quot;Anchor link for: tackling-the-problem&quot;&gt;Tackling the Problem&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
 &lt;p&gt;So, now that we&#x27;ve looked into the issue&#x27;s context, let&#x27;s start taking action. Let&#x27;s open a code editor, and navigate to forked repository, and create a new branch for pull request. I&#x27;m just going to do what I normally do (to be honest, I still don&#x27;t feel very confident using Git, so I might do something a bit odd or not the usual way):&lt;&#x2F;p&gt;
-&lt;blockquote&gt;
+&lt;div class=&quot;admonition admonition-tip&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Tip&lt;&#x2F;div&gt;
 &lt;p&gt;If you&#x27;re also not confident with Git, that&#x27;s totally fine - the commands I show here work reliably, and the worst case is that reviewers will help you fix any Git issues&lt;&#x2F;p&gt;
-&lt;&#x2F;blockquote&gt;
+
+&lt;&#x2F;div&gt;
 &lt;pre data-lang=&quot;shell&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;$ git checkout -b add-regression-test-1
 &lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;And also, to ensure I&#x27;ve a clean and up-to-date branch, I run:&lt;&#x2F;p&gt;
 &lt;pre data-lang=&quot;shell&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;$ git fetch upstream
 $ git reset --hard upstream&amp;#x2F;main
 &lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;blockquote&gt;
-&lt;p&gt;Fair warning: &lt;code&gt;reset --hard&lt;&#x2F;code&gt; will discard all your uncommitted local changes. Make sure you don&#x27;t have any unsaved work before running this command. I always verify this first, which is why I use it safely&lt;&#x2F;p&gt;
-&lt;&#x2F;blockquote&gt;
-&lt;blockquote&gt;
+&lt;div class=&quot;admonition admonition-warning&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Fair warning&lt;&#x2F;div&gt;
+&lt;p&gt;&lt;code&gt;reset --hard&lt;&#x2F;code&gt; will discard all your uncommitted local changes. Make sure you don&#x27;t have any unsaved work before running this command. I always verify this first, which is why I use it safely&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
+&lt;div class=&quot;admonition admonition-note&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Note&lt;&#x2F;div&gt;
 &lt;p&gt;This fetches the latest changes from the main Rust repository and resets branch to match it exactly&lt;&#x2F;p&gt;
-&lt;&#x2F;blockquote&gt;
+
+&lt;&#x2F;div&gt;
 &lt;p&gt;Now let&#x27;s figure out where to add a new test. Since it&#x27;ll be a UI test, I should find the appropriate subdirectory to place it. Since the issue was titled &quot;resolve: &lt;code&gt;no entry found for key&lt;&#x2F;code&gt;&quot;, it&#x27;s clear this is a name resolution problem, which means the test should go in the resolve directory&lt;&#x2F;p&gt;
 &lt;p&gt;Also a very small tip on how can you determine the directory, because in your case it might not be specified in the issue&#x27;s title, in that case feel free to look at labels on that issue, it&#x27;s very likely do have labels like &lt;code&gt;A-resolve&lt;&#x2F;code&gt; or &lt;code&gt;A-macros&lt;&#x2F;code&gt; like in my case, and you can search for this words in &lt;code&gt;tests&#x2F;ui&#x2F;README.md&lt;&#x2F;code&gt;, also, try to use your own intuition to understand what is tested in that test (sometimes it&#x27;s not very obvious, I completely relate that part)&lt;&#x2F;p&gt;
 &lt;p&gt;Let&#x27;s open &lt;code&gt;tests&#x2F;ui&#x2F;README.md&lt;&#x2F;code&gt; and search for &quot;resolve&quot;, to see what&#x27;s available:&lt;&#x2F;p&gt;
@@ -88,39 +631,42 @@ $ code tests&amp;#x2F;ui&amp;#x2F;resolve&amp;#x2F;exported-macro-in-mod-147958.
 &lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;This will start building the compiler and any necessary tools. By the way, since I expect no errors to occur, a &lt;code&gt;.stderr&lt;&#x2F;code&gt; file shouldn&#x27;t be generated, so I didn&#x27;t use the &lt;code&gt;--bless&lt;&#x2F;code&gt; flag (the one that generates the error output file)&lt;&#x2F;p&gt;
 &lt;p&gt;The test didn&#x27;t pass...&lt;&#x2F;p&gt;
-&lt;pre data-lang=&quot;text&quot; class=&quot;language-text &quot;&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;running 1 tests
+&lt;pre class=&quot;term&quot;&gt;running 1 tests
 
-[ui] tests&amp;#x2F;ui&amp;#x2F;resolve&amp;#x2F;exported-macro-in-mod-147958.rs ... F
+[ui] tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs ... F
 
 
 failures:
 
----- [ui] tests&amp;#x2F;ui&amp;#x2F;resolve&amp;#x2F;exported-macro-in-mod-147958.rs stdout ----
-Saved the actual stderr to `&amp;#x2F;home&amp;#x2F;gh-Kivooeo&amp;#x2F;r&amp;#x2F;rust&amp;#x2F;build&amp;#x2F;aarch64-unknown-linux-gnu&amp;#x2F;test&amp;#x2F;ui&amp;#x2F;resolve&amp;#x2F;exported-macro-in-mod-147958&amp;#x2F;exported-macro-in-mod-147958.stderr`
+---- [ui] tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs stdout ----
+Saved the actual stderr to `&#x2F;home&#x2F;gh-Kivooeo&#x2F;r&#x2F;rust&#x2F;build&#x2F;aarch64-unknown-linux-gnu&#x2F;test&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958&#x2F;exported-macro-in-mod-147958.stderr`
 normalized stderr:
-error[E0601]: `main` function not found in crate `exported_macro_in_mod_147958`
-  --&amp;gt; $DIR&amp;#x2F;exported-macro-in-mod-147958.rs:15:2
-   |
-LL | }
-   |  ^ consider adding a `main` function to `$DIR&amp;#x2F;exported-macro-in-mod-147958.rs`
+&lt;span class=&quot;ansi-bold af-red&quot;&gt;error[E0601]&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: `main` function not found in crate `exported_macro_in_mod_147958`&lt;&#x2F;span&gt;
+  &lt;span class=&quot;ansi-bold af-blue&quot;&gt;--&amp;gt;&lt;&#x2F;span&gt; $DIR&#x2F;exported-macro-in-mod-147958.rs:15:2
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;LL |&lt;&#x2F;span&gt; }
+&lt;span class=&quot;ansi-bold af-blue&quot;&gt;   |&lt;&#x2F;span&gt;  &lt;span class=&quot;ansi-bold af-red&quot;&gt;^ consider adding a `main` function to `$DIR&#x2F;exported-macro-in-mod-147958.rs`&lt;&#x2F;span&gt;
 
-error: aborting due to 1 previous error
+&lt;span class=&quot;ansi-bold af-red&quot;&gt;error&lt;&#x2F;span&gt;&lt;span class=&quot;ansi-bold&quot;&gt;: aborting due to 1 previous error&lt;&#x2F;span&gt;
 
-For more information about this error, try `rustc --explain E0601`.
-&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+For more information about this error, try `rustc --explain E0601`.&lt;&#x2F;pre&gt;
 &lt;p&gt;Ah, I forgot to add a &lt;code&gt;main&lt;&#x2F;code&gt; function. Of course, I could have added a directive like &lt;code&gt;&#x2F;&#x2F;@ compile-flags: --crate-type lib&lt;&#x2F;code&gt; to indicate this is a library, but I&#x27;m more used to just adding an empty &lt;code&gt;main&lt;&#x2F;code&gt; function&lt;&#x2F;p&gt;
 &lt;p&gt;Alright, that&#x27;s it. I can also run &lt;code&gt;.&#x2F;x test tidy&lt;&#x2F;code&gt; just to make sure there&#x27;s no trailing whitespace and that I didn&#x27;t forget a newline at the end of the file&lt;&#x2F;p&gt;
-&lt;blockquote&gt;
+&lt;div class=&quot;admonition admonition-note&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Note&lt;&#x2F;div&gt;
 &lt;p&gt;tidy checks formatting, whitespace, file placement, and other repository conventions&lt;&#x2F;p&gt;
-&lt;&#x2F;blockquote&gt;
+
+&lt;&#x2F;div&gt;
 &lt;p&gt;Now I can prepare the pull request. To do that I ran the following commands:&lt;&#x2F;p&gt;
 &lt;pre data-lang=&quot;shell&quot; class=&quot;language-shell &quot;&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;user@machine ~&amp;#x2F;r&amp;#x2F;rust (add-regression-test-1)&amp;gt; git add .
 user@machine ~&amp;#x2F;r&amp;#x2F;rust (add-regression-test-1)&amp;gt; git commit -m &amp;quot;add regression test&amp;quot;
 user@machine ~&amp;#x2F;r&amp;#x2F;rust (add-regression-test-1)&amp;gt; git push --force-with-lease origin add-regression-test-1 
 &lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;blockquote&gt;
-&lt;p&gt;Note: &lt;code&gt;--force-with-lease&lt;&#x2F;code&gt; isn&#x27;t needed for a new branch, but I use it out of habit&lt;&#x2F;p&gt;
-&lt;&#x2F;blockquote&gt;
+&lt;div class=&quot;admonition admonition-note&quot; role=&quot;note&quot;&gt;
+&lt;div class=&quot;admonition-title&quot;&gt;Note&lt;&#x2F;div&gt;
+&lt;p&gt;&lt;code&gt;--force-with-lease&lt;&#x2F;code&gt; isn&#x27;t needed for a new branch, but I use it out of habit&lt;&#x2F;p&gt;
+
+&lt;&#x2F;div&gt;
 &lt;p&gt;I think everything is ready, so let&#x27;s go to GitHub. I&#x27;ll open my fork, switch to the branch I created for this pull request, and click the big &quot;Contribute -&amp;gt; Open pull request&quot; button&lt;&#x2F;p&gt;
 &lt;p&gt;I&#x27;ll keep the description minimal, since there is not much to tell about this PR. I titled it &quot;add regression test for 147958&quot; and I just left the description as &quot;fixes #147958&quot;, so that the issue will be closed after merging the pull request&lt;&#x2F;p&gt;
 &lt;p&gt;Since I don&#x27;t know who should do the review, I left it like that. Usually, you can write something like &lt;code&gt;r? team&lt;&#x2F;code&gt; (e.g. &lt;code&gt;r? compiler&lt;&#x2F;code&gt;) or a specific member like &lt;code&gt;r? Kivooeo&lt;&#x2F;code&gt;. If you don&#x27;t specify anyone, rustbot will pick the most appropriate free reviewer in rotation&lt;&#x2F;p&gt;
@@ -400,7 +946,7 @@ LL |         (*p)-&amp;gt;x;
         
     </entry>
     <entry xml:lang="en">
-        <title>`if let guard` stabilizing path</title>
+        <title>The `if let guard` stabilization path</title>
         <published>2026-01-25T00:00:00+00:00</published>
         <updated>2026-01-25T00:00:00+00:00</updated>
         
@@ -679,7 +1225,7 @@ fn main() {
         
     </entry>
     <entry xml:lang="en">
-        <title>first post</title>
+        <title>First post</title>
         <published>2025-12-25T00:00:00+00:00</published>
         <updated>2025-12-25T00:00:00+00:00</updated>
         

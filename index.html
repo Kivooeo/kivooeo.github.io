@@ -10,7 +10,29 @@
     (function () {
       try {
         var t = localStorage.getItem("theme");
+        if (t === "reading-dark") { t = ""; localStorage.removeItem("theme"); }
+        else if (t === "reading-light") { t = "light"; localStorage.setItem("theme", "light"); }
         if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script>
+
+  
+  <script>
+    (function () {
+      try {
+        var DARK = ["#cf9a8f", "#d6b27a", "#a3c293", "#8fc0bb", "#b6a3dd", "#9cb8db"];
+        var LIGHT = ["#b85c4a", "#a9762a", "#4f7d3e", "#2f867f", "#6d4fb0", "#3f6cb8"];
+        var idx = Math.floor(Math.random() * DARK.length);
+        var vars = ["--link", "--primary-highlight", "--heading", "--post-accent",
+                    "--list-marker", "--code-inline", "--blockquote-border"];
+        window.__applyAccent = function () {
+          var light = document.documentElement.getAttribute("data-theme") === "light";
+          var c = (light ? LIGHT : DARK)[idx];
+          var r = document.documentElement.style;
+          vars.forEach(function (v) { r.setProperty(v, c); });
+        };
+        window.__applyAccent();
       } catch (e) {}
     })();
   </script><meta name="description" content="for rarely posting silly stuff">
@@ -62,9 +84,9 @@
         </div>
         <div class="themes">
           <span class="ctl-label">theme:</span>
-          <button type="button" class="theme-btn" data-theme="">gruvbox</button>
-          <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
-          <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+          <button type="button" class="theme-btn" data-theme="">dark</button>
+          <button type="button" class="theme-btn" data-theme="light">light</button>
+          <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
         </div>
       </div>
     </header>
@@ -72,40 +94,50 @@
 
     <main>
       
-      <h1>index</h1>
-      <ul>
-        
-        
-        
-        
-        
-        <li>
-          <a href="https://kivooeo.github.io/blog/e-needs-test/">
-            2026-02-14 => part 1: Tackling an `E-needs-test` issue
-          </a>
-        </li>
-        
-        <li>
-          <a href="https://kivooeo.github.io/blog/first-part-of-contibuting/">
-            2026-01-28 => So You Want to Contribute to Rust
-          </a>
-        </li>
-        
-        <li>
-          <a href="https://kivooeo.github.io/blog/if-let-guard/">
-            2026-01-25 => `if let guard` stabilizing path
-          </a>
-        </li>
-        
-        <li>
-          <a href="https://kivooeo.github.io/blog/first/">
-            2025-12-25 => first post
-          </a>
-        </li>
-        
-        
-        
-      </ul>
+      <div class="home">
+        <ul class="post-list">
+          
+          
+          
+          
+          
+          <li>
+            <a href="https://kivooeo.github.io/blog/p2-a-diagnostics/">Part 2: Tackling an `A-diagnostics` issue</a>
+            <time class="post-date" datetime="2026-06-15">15 Jun 2026</time>
+          </li>
+          
+          <li>
+            <a href="https://kivooeo.github.io/blog/e-needs-test/">Part 1: Tackling an `E-needs-test` issue</a>
+            <time class="post-date" datetime="2026-02-14">14 Feb 2026</time>
+          </li>
+          
+          <li>
+            <a href="https://kivooeo.github.io/blog/first-part-of-contibuting/">So You Want to Contribute to Rust</a>
+            <time class="post-date" datetime="2026-01-28">28 Jan 2026</time>
+          </li>
+          
+          <li>
+            <a href="https://kivooeo.github.io/blog/if-let-guard/">The `if let guard` stabilization path</a>
+            <time class="post-date" datetime="2026-01-25">25 Jan 2026</time>
+          </li>
+          
+          <li>
+            <a href="https://kivooeo.github.io/blog/first/">First post</a>
+            <time class="post-date" datetime="2025-12-25">25 Dec 2025</time>
+          </li>
+          
+          
+          
+        </ul>
+        <div class="photo-wall-wrap">
+          <div class="photo-wall" aria-hidden="true" data-manifest="https://kivooeo.github.io/wall/manifest.json">
+            <div class="photo-row row-right"></div>
+            <div class="photo-row row-left"></div>
+            <div class="photo-row row-right"></div>
+          </div>
+          <p class="wall-caption">Even emptiness may be harnessed.</p>
+        </div>
+      </div>
       
     </main>
   </div>
@@ -142,9 +174,9 @@
   <div class="dock-panel on-scroll dock-right">
     <div class="themes">
       <span class="ctl-label">theme:</span>
-      <button type="button" class="theme-btn" data-theme="">gruvbox</button>
-      <button type="button" class="theme-btn" data-theme="reading-dark">reading dark</button>
-      <button type="button" class="theme-btn" data-theme="reading-light">reading light</button>
+      <button type="button" class="theme-btn" data-theme="">dark</button>
+      <button type="button" class="theme-btn" data-theme="light">light</button>
+      <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
     </div>
   </div>
   <script>
@@ -180,6 +212,8 @@
   <script src="https://kivooeo.github.io/js/copycode.js"></script>
   <script src="https://kivooeo.github.io/js/anchors.js"></script>
   <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/mentions.js"></script>
+  <script src="https://kivooeo.github.io/js/wall.js"></script>
   <script src="https://kivooeo.github.io/js/nav.js"></script>
 </body>
 

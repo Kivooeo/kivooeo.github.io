@@ -7,6 +7,7 @@
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
+    if (window.__applyAccent) window.__applyAccent();
   }
 
   function markActive(name) {

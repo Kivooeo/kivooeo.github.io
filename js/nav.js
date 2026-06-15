@@ -16,6 +16,8 @@
     if (window.initCopyButtons) window.initCopyButtons();
     if (window.initHeadingAnchors) window.initHeadingAnchors();
     if (window.initBackToContents) window.initBackToContents();
+    if (window.initMentions) window.initMentions();
+    if (window.initWall) window.initWall();
     if (window.__updateDocks) window.__updateDocks();
   }
 

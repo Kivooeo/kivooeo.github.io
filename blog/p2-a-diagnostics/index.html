@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "reading-dark") { t = ""; localStorage.removeItem("theme"); }
+        else if (t === "reading-light") { t = "light"; localStorage.setItem("theme", "light"); }
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script>
+
+  
+  <script>
+    (function () {
+      try {
+        var DARK = ["#cf9a8f", "#d6b27a", "#a3c293", "#8fc0bb", "#b6a3dd", "#9cb8db"];
+        var LIGHT = ["#b85c4a", "#a9762a", "#4f7d3e", "#2f867f", "#6d4fb0", "#3f6cb8"];
+        var idx = Math.floor(Math.random() * DARK.length);
+        var vars = ["--link", "--primary-highlight", "--heading", "--post-accent",
+                    "--list-marker", "--code-inline", "--blockquote-border"];
+        window.__applyAccent = function () {
+          var light = document.documentElement.getAttribute("data-theme") === "light";
+          var c = (light ? LIGHT : DARK)[idx];
+          var r = document.documentElement.style;
+          vars.forEach(function (v) { r.setProperty(v, c); });
+        };
+        window.__applyAccent();
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="So it&#x27;s been like a couple months since i wrote the last post about how i tackled an e-needs-test issue This time, like i promised, i wanna go through something a bit more user-facing together with yo…">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:title" content="Part 2: Tackling an `A-diagnostics` issue">
+  <meta property="og:description" content="So it&#x27;s been like a couple months since i wrote the last post about how i tackled an e-needs-test issue This time, like i promised, i wanna go through something a bit more user-facing together with yo…">
+  <meta property="og:url" content="https://kivooeo.github.io/blog/p2-a-diagnostics/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Part 2: Tackling an `A-diagnostics` issue">
+  <meta name="twitter:description" content="So it&#x27;s been like a couple months since i wrote the last post about how i tackled an e-needs-test issue This time, like i promised, i wanna go through something a bit more user-facing together with yo…">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>Part 2: Tackling an `A-diagnostics` issue | kivo&#x27;s blog</title>
+
+  
+  <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
+  
+  
+</head>
+
+<body>
+  <div class="content">
+    
+    
+    <header>
+      <div class="pull-right">
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
+      </div>
+      <div class="title">
+        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
+      </div>
+      <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">dark</button>
+          <button type="button" class="theme-btn" data-theme="light">light</button>
+          <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
+        </div>
+      </div>
+    </header>
+    
+
+    <main>
+      
+<article>
+  <div class="headline">
+    <h1>Part 2: Tackling an `A-diagnostics` issue</h1>
+    <div class="border"></div>
+    <time datetime=" 2026-06-15" class="date" itemprop="datePublished">
+      15 Jun 2026
+    </time>
+    
+    
+    
+    <span class="reading-time">· ~12 min read · 2350 words</span>
+    
+  </div>
+  
+  <details class="toc" open>
+    <summary>Contents</summary>
+    
+<ul>
+  
+  <li>
+    <a href="#picking-an-issue">Picking an Issue</a>
+    
+  </li>
+  
+  <li>
+    <a href="#starting-to-dig">Starting to Dig</a>
+    
+  </li>
+  
+  <li>
+    <a href="#finding-where-the-suggestion-is-born">Finding Where the Suggestion Is Born</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-actual-fix">The Actual Fix</a>
+    
+  </li>
+  
+  <li>
+    <a href="#running-the-test-suite">Running the Test Suite</a>
+    
+  </li>
+  
+  <li>
+    <a href="#wrapping-up">Wrapping Up</a>
+    
+  </li>
+  
+  <li>
+    <a href="#what-happens-next">What Happens Next?</a>
+    
+  </li>
+  
+  <li>
+    <a href="#the-review-comes-back">The Review Comes Back</a>
+    
+  </li>
+  
+  <li>
+    <a href="#round-two-of-nits">Round Two of Nits</a>
+    
+  </li>
+  
+  <li>
+    <a href="#what-i-hope-you-take-from-this">What I Hope You Take From This</a>
+    
+  </li>
+  
+</ul>
+
+  </details>
+  
+  <div class="articleBody">
+    <p>So it's been like a couple months since i wrote the last post about how i tackled an <code>e-needs-test</code> issue</p>
+<p>This time, like i promised, i wanna go through something a bit more user-facing together with you - diagnostics</p>
+<div class="admonition admonition-note" role="note">
+<div class="admonition-title">Note</div>
+<p>A diagnostic is that nice, colored explanation the compiler shows you when something goes wrong. Instead of just shouting "error" and walking away, the compiler calmly points at what's off and usually nudges you toward a fix</p>
+
+</div>
+<p>For example</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0596]</span><span class="ansi-bold">: cannot borrow `*some_string` as mutable, as it is behind a `&amp;` reference</span>
+ <span class="ansi-bold af-blue">--&gt;</span> src/main.rs:8:5
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 |</span>     some_string.push_str(", world");
+<span class="ansi-bold af-blue">  |</span>     <span class="ansi-bold af-red">^^^^^^^^^^^ `some_string` is a `&amp;` reference, so it cannot be borrowed as mutable</span>
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-cyan">help</span>: consider changing this to be a mutable reference
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">7 |</span> fn change(some_string: &amp;<span class="af-green">mut</span> String) {
+<span class="ansi-bold af-blue">  |</span>                         <span class="af-green">+++</span>
+
+For more information about this error, try `rustc --explain E0596`.
+<span class="ansi-bold af-red">error</span><span class="ansi-bold">: could not compile `f` (bin "f") due to 1 previous error</span></pre>
+<p>Beautiful, isn't it? Well, the thing is they're not as perfect as they look at first glance. If we open the <a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20label%3AA-diagnostics%20no%3Aassignee">issues</a> we'll see a huge pile of issues on this topic, and even though the rust team puts a lot of effort into making them as user-friendly as possible (you know, those stories where you get 20kb of unreadable output from gcc), teachable and simple - i don't think it'll ever be possible to make them 100% perfect. But that doesn't mean we shouldn't improve them at all</p>
+<h2 id="picking-an-issue"><a class="zola-anchor" href="#picking-an-issue" aria-label="Anchor link for: picking-an-issue">Picking an Issue</a></h2>
+<p>So let's grab an issue and try to solve one</p>
+<div class="admonition admonition-warning" role="note">
+<div class="admonition-title">Fair warning</div>
+<p>I'll say right away, the difficulty in this area ranges from "change one word" to "rewrite half of the borrow checker". But on average it's pretty gentle and somewhere in between, so solving them is interesting and fun (mostly)</p>
+
+</div>
+<div class="admonition admonition-warning" role="note">
+<div class="admonition-title">Another fair warning</div>
+<p>Bear in mind that your experience may differ significantly from mine, because diagnostics permeate the entire compiler, from the lexer right through to MIR; there's so much going on that it's impossible to take everything into account: parser recovery, name resolution, type checking, trait resolution, borrow checking; and that's just a small part of it &gt;&lt;</p>
+
+</div>
+<p>But you gotta pick the issue wisely, for the same reason as both warnings above</p>
+<p>This <a href="https://github.com/rust-lang/rust/issues/151602">one</a> caught my eye</p>
+<p>Shortly, right now for this code</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">fn take(_: impl Iterator&lt;0&gt;) {}
+</code></pre>
+<p>The compiler gives this error</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+  <span class="ansi-bold af-blue">--&gt;</span> src/lib.rs:1:17
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue"> 1 |</span> fn take(_: impl Iterator&lt;0&gt;) {}
+<span class="ansi-bold af-blue">   |</span>                 <span class="ansi-bold af-red">^^^^^^^^ expected 0 generic arguments</span>
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+  <span class="ansi-bold af-blue">--&gt;</span> /playground/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:40:11
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">40 |</span> pub trait Iterator {
+<span class="ansi-bold af-blue">   |</span>           <span class="ansi-bold af-green">^^^^^^^^</span>
+<span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue"> 1 |</span> fn take(_: impl Iterator&lt;<span class="af-green">Item =</span> 0&gt;) {}
+<span class="ansi-bold af-blue">   |</span>                          <span class="af-green">++++++</span></pre>
+<p>Which is wrong and doesn't make any sense</p>
+<p>And this code (it's a bit outdated)</p>
+<div class="admonition admonition-important" role="note">
+<div class="admonition-title">Important</div>
+<p>MGCA (<code>min_generic_const_args</code>) is a nightly feature that lets you use const values directly as generic arguments - <code>Trait&lt;0&gt;</code> instead of <code>Trait&lt;K = 0&gt;</code>. That's what this whole second example lives in</p>
+
+</div>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">#![feature(min_generic_const_args)]
+trait Trait { #[type_const] const K: i32; }
+fn take(_: impl Trait&lt;0&gt;) {}
+</code></pre>
+<p>Spits out this error</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+ <span class="ansi-bold af-blue">--&gt;</span> src/lib.rs:3:17
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">3 |</span> fn take(_: impl Trait&lt;0&gt;) {}
+<span class="ansi-bold af-blue">  |</span>                 <span class="ansi-bold af-red">^^^^^--- help: remove the unnecessary generics</span>
+<span class="ansi-bold af-blue">  |</span>                 <span class="ansi-bold af-red">|</span>
+<span class="ansi-bold af-blue">  |</span>                 expected 0 generic arguments
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+ <span class="ansi-bold af-blue">--&gt;</span> src/lib.rs:2:7
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">2 |</span> trait Trait { #[type_const] const K: i32; }
+<span class="ansi-bold af-blue">  |</span>       <span class="ansi-bold af-green">^^^^^</span></pre>
+<p>Even though it should suggest something like</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">impl Trait&lt;K = 0&gt;
+</code></pre>
+<h2 id="starting-to-dig"><a class="zola-anchor" href="#starting-to-dig" aria-label="Anchor link for: starting-to-dig">Starting to Dig</a></h2>
+<p>First thing i make a clean branch</p>
+<pre data-lang="sh" class="language-sh "><code class="language-sh" data-lang="sh">$ git checkout -b fix-mgca-assoc-sugg
+</code></pre>
+<p>And right away i kick off a compiler build</p>
+<pre data-lang="sh" class="language-sh "><code class="language-sh" data-lang="sh">$ .&#x2F;x b
+</code></pre>
+<p>So i don't have to do it later, plus I'll need to run the code above with the <code>-Ztrack-diagnostics</code> flag to find at least the rough place where the diagnostic gets created</p>
+<p>While the compiler is building, one interesting detail about this issue - @fmease originally wanted to work on this problem but dropped his assignment</p>
+<p>So i messaged him to ask what went wrong and why he decided not to fix it further - as one of the people who knows this area well, he'll give the right hints and help out</p>
+<div class="admonition admonition-tip" role="note">
+<div class="admonition-title">For newcomers</div>
+<p>Reaching out to whoever was originally on an issue (or anyone who knows the area) is one of the best moves you can make. In the overwhelming majority of cases people respond super positively - maybe not right away, but positively</p>
+
+</div>
+<p>And so, 5 minutes later</p>
+<pre data-lang="text" class="language-text "><code class="language-text" data-lang="text">Build completed successfully in 0:04:57
+</code></pre>
+<p>My compiler built (yeah I'm doing everything in real time, on one screen i have a text editor and on the other a code editor)</p>
+<p>Let's run it on the file right away and see what's going on</p>
+<pre class="term">gh-Kivooeo@dev-desktop-eu-1 ~/r/rust (fix-mgca-assoc-sugg) &gt; ./build/aarch64-unknown-linux-gnu/stage1/bin/rustc -Ztrack-diagnostics /home/gh-Kivooeo/test_/src/main.rs --edition 2024
+<span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+  <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:1:17
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue"> 1 |</span> fn take(_: impl Iterator&lt;0&gt;) {}
+<span class="ansi-bold af-blue">   |</span>                 <span class="ansi-bold af-red">^^^^^^^^ expected 0 generic arguments</span>
+<span class="ansi-bold af-blue">   |</span>
+   = note: -Ztrack-diagnostics: created at compiler/rustc_hir_analysis/src/hir_ty_lowering/generics.rs:575:18
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+  <span class="ansi-bold af-blue">--&gt;</span> library/core/src/iter/traits/iterator.rs:42:17
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">42 |</span> pub const trait Iterator {
+<span class="ansi-bold af-blue">   |</span>                 <span class="ansi-bold af-green">^^^^^^^^</span>
+<span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue"> 1 |</span> fn take(_: impl Iterator&lt;<span class="af-green">Item =</span> 0&gt;) {}
+<span class="ansi-bold af-blue">   |</span>                          <span class="af-green">++++++</span>
+
+<span class="ansi-bold af-red">error</span><span class="ansi-bold">: aborting due to 1 previous error</span></pre>
+<p>Let's look into <code>compiler/rustc_hir_analysis/src/hir_ty_lowering/generics.rs:575:18</code>, hmm, at first glance this looks like exactly the function we need</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F;&#x2F; Checks that the correct number of generic arguments have been provided.
+&#x2F;&#x2F;&#x2F; This is used both for datatypes and function calls.
+#[instrument(skip(cx, gen_pos), level = &quot;debug&quot;)]
+pub(crate) fn check_generic_arg_count(
+    cx: &amp;dyn HirTyLowerer&lt;&#x27;_&gt;,
+    def_id: DefId,
+    seg: &amp;hir::PathSegment&lt;&#x27;_&gt;,
+    gen_params: &amp;ty::Generics,
+    gen_pos: GenericArgPosition,
+    has_self: bool,
+) -&gt; GenericArgCountResult
+</code></pre>
+<p>But looking at the logic, i don't see anything that could produce a suggestion like "add <code>Item = 0</code>"</p>
+<h2 id="finding-where-the-suggestion-is-born"><a class="zola-anchor" href="#finding-where-the-suggestion-is-born" aria-label="Anchor link for: finding-where-the-suggestion-is-born">Finding Where the Suggestion Is Born</a></h2>
+<p>So let's grep for the error text "replace the generic bound with the associated type". This grep found nothing except output in tests, so let's shorten it down to "replace the generic" and we immediately found what we need!</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">fn suggest_removing_args_or_generics(&amp;self, err: &amp;mut Diag&lt;&#x27;_, impl EmissionGuarantee&gt;)
+</code></pre>
+<p>And the specific check inside this function</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">if !self.is_in_trait_impl() {
+    let unused_generics = &amp;self.gen_args.args[self.num_expected_type_or_const_args()..];
+    let suggestions = iter::zip(unused_generics, &amp;unbound_types)
+        .map(|(potential, name)| {
+            (potential.span().shrink_to_lo(), format!(&quot;{name} = &quot;))
+        })
+        .collect::&lt;Vec&lt;_&gt;&gt;();
+
+    if !suggestions.is_empty() {
+        err.multipart_suggestion(
+            format!(
+                &quot;replace the generic bound{s} with the associated type{s}&quot;,
+                s = pluralize!(unbound_types.len())
+            ),
+            suggestions,
+            Applicability::MaybeIncorrect,
+        );
+    }
+}
+</code></pre>
+<p>Here you can clearly see it by the <code>suggestions</code> variable. Now we gotta think where to move next</p>
+<p>We have an interesting call chain through <code>num_expected_type_or_const_args</code> which is used here, but it can't really help us much</p>
+<p>I didn't give you the full context above. Here's what the whole check looks like</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">        &#x2F;&#x2F; If there is a single unbound associated type and a single excess generic param
+        &#x2F;&#x2F; suggest replacing the generic param with the associated type bound
+        if provided_args_matches_unbound_traits &amp;&amp; !unbound_types.is_empty() {
+            &#x2F;&#x2F; Don&#x27;t suggest if we&#x27;re in a trait impl as
+            &#x2F;&#x2F; that would result in invalid syntax (fixes #116464)
+            if !self.is_in_trait_impl() {
+</code></pre>
+<p>Why did i do that? I didn't look at the outer checks right away myself, and the comments give pretty nice hints</p>
+<p>Let's look at how <code>unbound_types</code> is defined</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">let unbound_types = self.get_unbound_associated_types();
+</code></pre>
+<p>Now let's look at this method</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    fn get_unbound_associated_types(&amp;self) -&gt; Vec&lt;String&gt; {
+        if self.tcx.is_trait(self.def_id) { &#x2F;&#x2F; ok that&#x27;s true
+            let items: &amp;AssocItems = self.tcx.associated_items(self.def_id); &#x2F;&#x2F; get assoc item, nice
+            items
+                .in_definition_order() &#x2F;&#x2F; fetch it in def. order
+                .filter(|item| {   &#x2F;&#x2F; filter by:
+                    item.is_type() &#x2F;&#x2F; only assoc types
+                        &amp;&amp; !item.is_impl_trait_in_trait() &#x2F;&#x2F; not trait
+                        &amp;&amp; !self
+                            .gen_args
+                            .constraints
+                            .iter()
+                            .any(|constraint| constraint.ident.name == item.name())
+                            &#x2F;&#x2F;^ exclude associated types that are already bound in the generic args
+                })
+                .map(|item| self.tcx.item_ident(item.def_id).to_string()) &#x2F;&#x2F; map it to string
+                .collect() &#x2F;&#x2F; and collect
+        } else {
+            Vec::default() &#x2F;&#x2F; otherwise just empty vec
+        }
+    }
+</code></pre>
+<p>Anyway it's all clear. Surprisingly this code is pretty readable on its own, so let's make a simple change and see what happens?</p>
+<pre data-lang="diff" class="language-diff "><code class="language-diff" data-lang="diff">- item.is_type()
++ (item.is_type() || item.is_type_const())
+</code></pre>
+<p>After that i run this interesting command</p>
+<pre data-lang="sh" class="language-sh "><code class="language-sh" data-lang="sh">$ .&#x2F;x b --keep-stage 1 &amp;&amp; .&#x2F;build&#x2F;aarch64-unknown-linux-gnu&#x2F;stage1&#x2F;bin&#x2F;rustc -Ztrack-diagnostics &#x2F;home&#x2F;gh-Kivooeo&#x2F;test_&#x2F;src&#x2F;main.rs --edition 2024
+</code></pre>
+<div class="admonition admonition-tip" role="note">
+<div class="admonition-title">Tip</div>
+<p>Use <code>--keep-stage 1</code> if you don't wanna recompile std and core, despite the flags name it works exactly like that</p>
+
+</div>
+<p>So... and for some reason it doesn't work</p>
+<pre class="term"><span class="ansi-bold af-red">error</span><span class="ansi-bold">: cannot find attribute `type_const` in this scope</span>
+ <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:2:17
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">2 |</span> trait Trait { #[type_const] const K: i32; }
+<span class="ansi-bold af-blue">  |</span>                 <span class="ansi-bold af-red">^^^^^^^^^^</span>
+<span class="ansi-bold af-blue">  |</span>
+  = note: -Ztrack-diagnostics: created at compiler/rustc_resolve/src/macros.rs:1071:46</pre>
+<p>Ah right, i forgot to mention the code examples are a bit outdated. Now you have to write <code>type const</code>, so the example becomes that</p>
+<p>And voila ✨</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+ <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:3:17
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">3 |</span> fn take(_: impl Trait&lt;0&gt;) {}
+<span class="ansi-bold af-blue">  |</span>                 <span class="ansi-bold af-red">^^^^^ expected 0 generic arguments</span>
+<span class="ansi-bold af-blue">  |</span>
+  = note: -Ztrack-diagnostics: created at compiler/rustc_hir_analysis/src/hir_ty_lowering/generics.rs:575:18
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+ <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:2:7
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">2 |</span> trait Trait { type const K: i32; }
+<span class="ansi-bold af-blue">  |</span>       <span class="ansi-bold af-green">^^^^^</span>
+<span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">3 |</span> fn take(_: impl Trait&lt;<span class="af-green">K =</span> 0&gt;) {}
+<span class="ansi-bold af-blue">  |</span>                       <span class="af-green">+++</span></pre>
+<h2 id="the-actual-fix"><a class="zola-anchor" href="#the-actual-fix" aria-label="Anchor link for: the-actual-fix">The Actual Fix</a></h2>
+<p>Now the only thing left is to deal with the first case, where we get a really not-great diagnostic</p>
+<p>For that i think we can go back to the zip logic, because it's the thing that adds this suggestion. We need to filter it somehow</p>
+<p>Good news, this function is used only in this one specific place, so we can ruthlessly change its signature. I suggest this one</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">fn get_unbound_associated_types(&amp;self) -&gt; Vec&lt;&amp;AssocItem&gt;
+</code></pre>
+<p>Not a string but the actual <code>AssocItem</code>, so we don't have to do <code>(String, bool)</code></p>
+<p>And we add a filter after the zip call, that checks the following - if we wanna suggest a const (like <code>0</code> for example) then we should check it's a <code>type const</code>, and if we wanna suggest a type then we should check it's a type</p>
+<p>Literally just like this</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">    .filter(|(potential, item)| match potential {
+        hir::GenericArg::Const(_) =&gt; item.is_type_const(),
+        hir::GenericArg::Type(_) =&gt; item.is_type(),
+        _ =&gt; false,
+    })
+</code></pre>
+<p>Annd... yeah, it works!</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+  <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:1:17
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue"> 1 |</span> fn take(_: impl Iterator&lt;0&gt;) {}
+<span class="ansi-bold af-blue">   |</span>                 <span class="ansi-bold af-red">^^^^^^^^ expected 0 generic arguments</span>
+<span class="ansi-bold af-blue">   |</span>
+   = note: -Ztrack-diagnostics: created at compiler/rustc_hir_analysis/src/hir_ty_lowering/generics.rs:575:18
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+  <span class="ansi-bold af-blue">--&gt;</span> library/core/src/iter/traits/iterator.rs:42:17
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">42 |</span> pub const trait Iterator {
+<span class="ansi-bold af-blue">   |</span>                 <span class="ansi-bold af-green">^^^^^^^^</span></pre>
+<p>No more nonsense suggestion, just the error, exactly what we wanted</p>
+<h2 id="running-the-test-suite"><a class="zola-anchor" href="#running-the-test-suite" aria-label="Anchor link for: running-the-test-suite">Running the Test Suite</a></h2>
+<p>Great, now let's run <code>./x test ui</code> - I'm expecting a big number of regressions in our test suite</p>
+<p>To my surprise only two tests. Let's look at their contents</p>
+<p>First test: <code>tests/ui/const-generics/issues/issue-87493.rs</code></p>
+<p>Looks like this</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">pub trait MyTrait {
+    type Assoc;
+}
+
+pub fn foo&lt;S, T&gt;(_s: S, _t: T)
+where
+    S: MyTrait,
+    T: MyTrait&lt;Assoc == S::Assoc&gt;,
+    &#x2F;&#x2F;~^ ERROR: expected one of `,` or `&gt;`, found `==`
+    &#x2F;&#x2F;~| ERROR: trait takes 0 generic arguments but 1 generic argument was supplied
+{
+}
+
+fn main() {}
+</code></pre>
+<p>The original error was this</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0107]</span><span class="ansi-bold">: trait takes 0 generic arguments but 1 generic argument was supplied</span>
+ <span class="ansi-bold af-blue">--&gt;</span> src/main.rs:8:8
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 |</span>     T: MyTrait&lt;Assoc == S::Assoc&gt;,
+<span class="ansi-bold af-blue">  |</span>        <span class="ansi-bold af-red">^^^^^^^ expected 0 generic arguments</span>
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-green">note</span>: trait defined here, with 0 generic parameters
+ <span class="ansi-bold af-blue">--&gt;</span> src/main.rs:1:11
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">1 |</span> pub trait MyTrait {
+<span class="ansi-bold af-blue">  |</span>           <span class="ansi-bold af-green">^^^^^^^</span>
+<span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 |</span>     T: MyTrait&lt;<span class="af-green">Assoc =</span> Assoc == S::Assoc&gt;,
+<span class="ansi-bold af-blue">  |</span>                <span class="af-green">+++++++</span></pre>
+<p>You know, just for fun i decided to try writing what the compiler suggests here, and you know what i got? You'll never guess...</p>
+<pre class="term"><span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 |</span>     T: MyTrait&lt;<span class="af-green">Assoc =</span> Assoc = Assoc == S::Assoc&gt;,
+<span class="ansi-bold af-blue">  |</span>                <span class="af-green">+++++++</span></pre>
+<p>I tried it. The compiler responded with an even more broken version of the same suggestion - <code>Assoc = Assoc = Assoc == S::Assoc</code>. A beginner could sit there applying this forever... After our fix this problem got fixed and now it (kinda) correctly suggests the fix</p>
+<pre class="term"><span class="ansi-bold af-red">error</span><span class="ansi-bold">: expected one of `,` or `&gt;`, found `==`</span>
+ <span class="ansi-bold af-blue">--&gt;</span> /home/gh-Kivooeo/test_/src/main.rs:8:22
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 |</span>     T: MyTrait&lt;Assoc == S::Assoc&gt;,
+<span class="ansi-bold af-blue">  |</span>                      <span class="ansi-bold af-red">^^ expected one of `,` or `&gt;`</span>
+<span class="ansi-bold af-blue">  |</span>
+  = note: -Ztrack-diagnostics: created at compiler/rustc_parse/src/parser/diagnostics.rs:2528:34
+<span class="ansi-bold af-cyan">help</span>: if you meant to use an associated type binding, replace `==` with `=`
+<span class="ansi-bold af-blue">  |</span>
+<span class="ansi-bold af-blue">8 </span><span class="af-red">-     T: MyTrait&lt;Assoc == S::Assoc&gt;,</span>
+<span class="ansi-bold af-blue">8 </span><span class="af-green">+     T: MyTrait&lt;Assoc = S::Assoc&gt;,</span>
+<span class="ansi-bold af-blue">  |</span></pre>
+<p>At least it compiles if you do what the compiler asks :)</p>
+<p>Now let's look at the second test</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F;! This test used to ICE: #121134
+&#x2F;&#x2F;! The issue is that we&#x27;re trying to prove a projection, but there&#x27;s
+&#x2F;&#x2F;! no bound for the projection&#x27;s trait, and the projection has the wrong
+&#x2F;&#x2F;! kind of generic parameter (lifetime vs type).
+&#x2F;&#x2F;! When actually calling the function with those broken bounds, trying to
+&#x2F;&#x2F;! instantiate the bounds with inference vars would ICE.
+#![feature(unboxed_closures)]
+
+trait Output&lt;&#x27;a&gt; {
+    type Type;
+}
+
+struct Wrapper;
+
+impl Wrapper {
+    fn do_something_wrapper&lt;O, F&gt;(&amp;mut self, _: F)
+    where
+        F: for&lt;&#x27;a&gt; FnOnce(&lt;F as Output&lt;i32&gt;&gt;::Type),
+        &#x2F;&#x2F;~^ ERROR: trait takes 0 generic arguments but 1 generic argument was supplied
+    {
+    }
+}
+
+fn main() {
+    let mut wrapper = Wrapper;
+    wrapper.do_something_wrapper(|value| ());
+}
+</code></pre>
+<p>Anyway, some complicated code, but what's interesting, right now the compiler suggests the following - add <code>Type = </code></p>
+<pre class="term"><span class="ansi-bold af-cyan">help</span>: replace the generic bound with the associated type
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">18 |</span>         F: for&lt;'a&gt; FnOnce(&lt;F as Output&lt;<span class="af-green">Type =</span> i32&gt;&gt;::Type),
+<span class="ansi-bold af-blue">   |</span>                                        <span class="af-green">++++++</span></pre>
+<p>And after we add <code>Type = i32</code>, it suggests this</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0229]</span><span class="ansi-bold">: associated item constraints are not allowed here</span>
+  <span class="ansi-bold af-blue">--&gt;</span> src/main.rs:18:40
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">18 |</span>         F: for&lt;'a&gt; FnOnce(&lt;F as Output&lt;Type = i32&gt;&gt;::Type),
+<span class="ansi-bold af-blue">   |</span>                                        <span class="ansi-bold af-red">^^^^^^^^^^ associated item constraint not allowed here</span>
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-cyan">help</span>: consider removing this associated item binding
+<span class="ansi-bold af-blue">   |</span>
+<span class="ansi-bold af-blue">18 </span><span class="af-red">-         F: for&lt;'a&gt; FnOnce(&lt;F as Output&lt;Type = i32&gt;&gt;::Type),</span>
+<span class="ansi-bold af-blue">18 </span><span class="af-green">+         F: for&lt;'a&gt; FnOnce(&lt;F as Output&lt;&gt;&gt;::Type),</span></pre>
+<p>What...? Yeah, this was kinda to the point about diagnostics not being perfect in the compiler. Anyway i ran around in circles for a pretty long time trying to do what the compiler suggests, and in the end it just didn't compile</p>
+<p>Anyway, i think this isn't our problem anymore :)</p>
+<p>The very fact that the compiler no longer suggests adding <code>Type =</code> here is already a win, and the other diagnostics fall out of scope of this fix</p>
+<p>So with a calm soul we update the tests so they run with the new expected output. For the first one we just run with <code>--bless</code></p>
+<pre data-lang="sh" class="language-sh "><code class="language-sh" data-lang="sh">$ .&#x2F;x test tests&#x2F;ui&#x2F;const-generics&#x2F;issues&#x2F;issue-87493.rs tests&#x2F;ui&#x2F;traits&#x2F;generic_param_mismatch_in_unsatisfied_projection.rs --bless
+</code></pre>
+<p>And now we look</p>
+<pre data-lang="text" class="language-text "><code class="language-text" data-lang="text">running 2 tests
+..
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 21417 filtered out; finished in 51.58ms
+</code></pre>
+<p>Perfect!</p>
+<h2 id="wrapping-up"><a class="zola-anchor" href="#wrapping-up" aria-label="Anchor link for: wrapping-up">Wrapping Up</a></h2>
+<p>Now, the last thing left to do is write a new test and add @fmease's suggestion to change the wording of this error</p>
+<pre data-lang="diff" class="language-diff "><code class="language-diff" data-lang="diff">format!(
+-    &quot;replace the generic bound{s} with the associated type{s}&quot;,
++    &quot;turn the generic argument{s} into an associated item binding{s}&quot;,
+    s = pluralize!(unbound_types.len())
+)
+</code></pre>
+<p>Now let's add a new test, if you don't know how to do that i suggest you read the <a href="/blog/e-needs-test/">previous post</a> about adding tests!</p>
+<p>Here's what our test will look like</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F;! Regression test for &lt;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;151602&gt;.
+
+#![feature(min_generic_const_args)]
+
+trait Trait {
+    type const K: i32;
+}
+fn take(_: impl Trait&lt;0&gt;) {}
+&#x2F;&#x2F;~^ ERROR: trait takes 0 generic arguments but 1 generic argument was supplied [E0107]
+
+fn main() {}
+</code></pre>
+<p>Since we changed the error wording, we'll need to run all the tests again and update the <code>.stderr</code> files for all of them</p>
+<pre data-lang="sh" class="language-sh "><code class="language-sh" data-lang="sh">$ .&#x2F;x test ui --bless
+</code></pre>
+<p>I think after that the only thing left is to open the pull request and assign @fmease to it (using <code>r?</code>)</p>
+<h2 id="what-happens-next"><a class="zola-anchor" href="#what-happens-next" aria-label="Anchor link for: what-happens-next">What Happens Next?</a></h2>
+<p>While the tests are running, let's talk about this for a sec. I actually admit there might be some edge cases in this fix or the test, I'm not super familiar with the MGCA feature, even though i wrote the Ctor support and a couple other things for it. That was more thanks to the great mentorship and review from @BoxyUwU</p>
+<p>Also a lot of useful info on this matter was said <a href="/blog/e-needs-test/#what-to-expect-during-review">here</a></p>
+<p>Well, it seems tests are compiled fine, except one test which requiers me to update the error:</p>
+<pre data-lang="diff" class="language-diff "><code class="language-diff" data-lang="diff">fn trait_bound_generic&lt;I: T&lt;u8, u16&gt;&gt;(_i: I) {
+    &#x2F;&#x2F;~^ ERROR trait takes 0 generic arguments
+-    &#x2F;&#x2F;~| HELP replace the generic bounds with the associated types
++    &#x2F;&#x2F;~| HELP turn the generic arguments into an associated item bindings
+}
+</code></pre>
+<p>So it felt to me that fix is very ready for being published, let's run <code>./x test tidy</code> to make very sure before opening a PR. Good, <code>tidy</code> seems fine about it</p>
+<pre><code>Build completed successfully in 0:00:41
+</code></pre>
+<p>Next step is to open a PR (done <a href="https://github.com/rust-lang/rust/pull/157908">here</a>), assign @fmease with <code>r?</code> and... well, that's basically it - now we wait :)</p>
+<h2 id="the-review-comes-back"><a class="zola-anchor" href="#the-review-comes-back" aria-label="Anchor link for: the-review-comes-back">The Review Comes Back</a></h2>
+<p>So the wait wasn't that long actually, and @fmease left a few comments. And honestly this is the part i enjoy the most - when someone who knows the area way better than you looks at your code and points at the spots you were too eager to skim past</p>
+<p>The first and the most important one was about my filter. Remember this part?</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">.filter(|(potential, item)| match potential {
+    hir::GenericArg::Const(_) =&gt; item.is_type_const(),
+    hir::GenericArg::Type(_) =&gt; item.is_type(),
+    _ =&gt; false,
+})
+</code></pre>
+<p>Looks fine right? Well, the thing is i was zipping <code>unused_generics</code> with <code>unbound_types</code> <strong>by position</strong>, and only then filtering by kind. But the assoc items come in definition order, and the generic args come in the order the user wrote them - there's no reason these two line up. @fmease gave a really clean example</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">trait Trait { type A; type const B: usize; }
+fn f&lt;T: Trait&lt;(), 0&gt;&gt;(); &#x2F;&#x2F; my PR emits a suggestion
+</code></pre>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">trait Trait { type const A: usize; type B; }
+fn f&lt;T: Trait&lt;(), 0&gt;&gt;(); &#x2F;&#x2F; my PR does *not* emit one
+</code></pre>
+<p>In the second case the zip produces pairs like <code>[(TyAssocConst, Ty), (AssocTy, Const)]</code> and neither pair survives the filter, so we just silently drop a perfectly good suggestion. Oops</p>
+<p>The fix is to stop pairing by position entirely. Instead i split the unbound items into two lazy iterators by kind, and let each generic arg pull the next item of its <strong>own</strong> kind</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">let mut unbound_assoc_consts = unbound_assoc_items.iter().filter(|item| item.is_type_const());
+let mut unbound_assoc_types = unbound_assoc_items.iter().filter(|item| item.is_type());
+let suggestions = unused_generics
+    .iter()
+    .filter_map(|potential| {
+        let item = match potential {
+            hir::GenericArg::Const(_) =&gt; unbound_assoc_consts.next(),
+            hir::GenericArg::Type(_) =&gt; unbound_assoc_types.next(),
+            _ =&gt; None,
+        }?;
+        Some((
+            potential.span().shrink_to_lo(),
+            &#x2F;&#x2F; FIXME: This doesn&#x27;t account for generic associated items
+            format!(&quot;{} = &quot;, self.tcx.item_ident(item.def_id)),
+        ))
+    })
+    .collect::&lt;Vec&lt;_&gt;&gt;();
+</code></pre>
+<p>Each <code>.next()</code> advances its own cursor, so a type arg always grabs the next assoc type and a const the next assoc const, no matter how they're interleaved - and <code>?</code> just bails (emitting nothing) if a queue runs dry instead of mispairing</p>
+<p>The second comment was a tiny but nice one. The wording</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&quot;turn the generic argument{s} into an associated item binding{s}&quot;
+</code></pre>
+<p>reads totally fine in singular, but the moment you have more than one it becomes "turn the generic arguments into <strong>an</strong> associated item bindings" which is, well, not english. So the <code>an</code> should only show up when there's exactly one. Quick fix</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">let s = pluralize!(suggestions.len());
+let article = if suggestions.len() == 1 { &quot;an &quot; } else { &quot;&quot; };
+err.multipart_suggestion(
+    format!(&quot;turn the generic argument{s} into {article}associated item binding{s}&quot;),
+    suggestions,
+    Applicability::MaybeIncorrect,
+);
+</code></pre>
+<p>Also notice i switched the pluralization from <code>unbound_types.len()</code> to <code>suggestions.len()</code> - now that not every excess arg necessarily produces a binding, the count should reflect what we actually suggest</p>
+<p>Then there was the comment above the whole block, which was honestly just a bit outdated. It still said</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F; If there is a single unbound associated type and a single excess generic param
+&#x2F;&#x2F; suggest replacing the generic param with the associated type bound
+</code></pre>
+<p>but the code handles multiple of them now, and assoc consts too, not only types. @fmease suggested generalizing it</p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F; If there is an identical amount of unbound associated items and excess generic args
+&#x2F;&#x2F; suggest turning the generic args into associated item bindings.
+</code></pre>
+<p>with a funny little caveat that even "identical amount" isn't strictly true anymore after my kind-matching change (equal counts no longer guarantee a full set of bindings, since a type only pairs with a type and a const with a const). But it's still way better than the old wording, so in it goes</p>
+<p>And the last one - @fmease asked me to drop a <code>// FIXME: This doesn't account for generic associated items</code> right above the <code>format!("{} = ", …)</code>, since that's the bit that can't express a generic assoc item like <code>type Assoc&lt;T&gt;;</code> (we'd produce <code>Assoc =</code> with nowhere to put its generics). A separate (preexisting) bug, but a <code>FIXME</code> is the honest thing to leave behind</p>
+<div class="admonition admonition-tip" role="note">
+<div class="admonition-title">Tip</div>
+<p>Don't be shy to leave <code>FIXME</code>s. A <code>FIXME</code> that names a real limitation is much more useful than pretending the code is perfect - it's basically a little note to the next person (or future you)</p>
+
+</div>
+<h2 id="round-two-of-nits"><a class="zola-anchor" href="#round-two-of-nits" aria-label="Anchor link for: round-two-of-nits">Round Two of Nits</a></h2>
+<p>I pinged <code>@rustbot ready</code> and, like clockwork, a second smaller round came back. This one was the comfy kind - all naming and wording, nothing scary</p>
+<p>The running theme was "make names tell the truth": a variable still called <code>unbound_types</code> was actually holding assoc consts too by now, so it got an honest rename, a one-off helper with a misleading name got inlined away, and a comment that said generic <em>param</em> where it meant generic <em>arg</em> got fixed (this corner of the compiler mixes those two up constantly)</p>
+<div class="admonition admonition-important" role="note">
+<div class="admonition-title">Important</div>
+<p>A big chunk of review comments are exactly this - a name, a word, a stale comment. It's not "you did it wrong", it's just how code stays readable for whoever touches it next, and it's the easiest kind of feedback to address</p>
+
+</div>
+<p>He also asked for one more test: that we <em>don't</em> suggest nonsense for a plain <code>Iterator&lt;0&gt;</code>. So i extended some test under <code>tests/ui/suggestions/</code></p>
+<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">pub trait T&lt;X, Y&gt; {
+    type A;
+    type B;
+    type C;
+}
+pub struct Foo {
+    i: Box&lt;dyn T&lt;usize, usize, usize, usize, B = usize&gt;&gt;,
+    &#x2F;&#x2F;~^ ERROR trait takes 2 generic arguments but 4 generic arguments were supplied
+}
+
+fn take(_: impl Iterator&lt;0&gt;) {} &#x2F;&#x2F; &lt;- here is what i&#x27;ve actually added !!!
+&#x2F;&#x2F;~^ ERROR trait takes 0 generic arguments but 1 generic argument was supplied
+
+fn main() {}
+
+</code></pre>
+<p>The whole point is the <code>.stderr</code> has <em>no</em> "turn the generic argument" help - <code>Iterator</code> has an assoc type but no assoc const, so the const queue is empty and we suggest nothing, exactly as intended</p>
+<p>After all that the suggestion finally does the right thing even in the weird ordering cases, the grammar is correct in both singular and plural, the names say what they mean, and the comment doesn't lie anymore</p>
+<p>And now this is ready for merge 🎉 🎉 🎉</p>
+<h2 id="what-i-hope-you-take-from-this"><a class="zola-anchor" href="#what-i-hope-you-take-from-this" aria-label="Anchor link for: what-i-hope-you-take-from-this">What I Hope You Take From This</a></h2>
+<p>If there's one thing i want you to leave with, it's that you really don't need to understand the whole compiler to make a diagnostic better. We took something that suggested complete nonsense, followed <code>-Ztrack-diagnostics</code> to the rough spot, found the exact code with a lazy grep, and made the suggestion only show up when it actually makes sense</p>
+<p>A-diagnostics issues are great for this - a lot of them sit comfortably in the easy-to-medium range, they're user-facing so your work is immediately visible, and the people you'll meet along the way are genuinely kind</p>
+<p>So if any of this looked fun - go pick one, grep around, ask questions, and don't be afraid to be wrong. That's literally how all of us started</p>
+<p>And honestly, if you wanna try one but feel a little lost - you can just assign me as your reviewer with <code>r? @Kivooeo</code> (or ping me anywhere), i'm always happy to mentor newcomers on any kind of issues</p>
+<hr />
+<p>On a side note, if you want to support future blog posts, my work on the compiler and mentoring newcomers, i'd be really grateful if you took a look at my <a href="/sponsor">sponsor page</a> &lt;3</p>
+
+  </div>
+  
+  <div class="post-end">
+    <img class="post-end-cat" src="https://kivooeo.github.io/cat.gif" alt="A cat" width="140" height="140">
+    <p><code>you've reached the end &lt;3</code></p>
+  </div>
+  
+</article>
+
+<button id="to-contents" class="to-contents" type="button" aria-label="Back to contents" title="Back to contents" hidden>↑ contents</button>
+
+
+    </main>
+  </div>
+
+  <footer>
+    
+    <p> <a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">Kivooeo</a> &mdash; <a
+        href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
+      theme</p>
+    
+  </footer>
+
+  
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">dark</button>
+      <button type="button" class="theme-btn" data-theme="light">light</button>
+      <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/mentions.js"></script>
+  <script src="https://kivooeo.github.io/js/wall.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
+</body>
+
+
+</html>
