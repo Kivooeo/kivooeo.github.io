@@ -114,7 +114,7 @@ fn take(_: impl Trait&amp;lt;0&amp;gt;) {}
 &lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;So i don&#x27;t have to do it later, plus I&#x27;ll need to run the code above with the &lt;code&gt;-Ztrack-diagnostics&lt;&#x2F;code&gt; flag to find at least the rough place where the diagnostic gets created&lt;&#x2F;p&gt;
 &lt;p&gt;While the compiler is building, one interesting detail about this issue - @fmease originally wanted to work on this problem but dropped his assignment&lt;&#x2F;p&gt;
-&lt;p&gt;So i messaged him to ask what went wrong and why he decided not to fix it further - as one of the people who knows this area well, he&#x27;ll give the right hints and help out&lt;&#x2F;p&gt;
+&lt;p&gt;Ideally it&#x27;s worth messaging him to ask what went wrong and why he decided not to fix it further - as one of the people who knows this area well, he&#x27;d give the right hints and help out&lt;&#x2F;p&gt;
 &lt;div class=&quot;admonition admonition-tip&quot; role=&quot;note&quot;&gt;
 &lt;div class=&quot;admonition-title&quot;&gt;For newcomers&lt;&#x2F;div&gt;
 &lt;p&gt;Reaching out to whoever was originally on an issue (or anyone who knows the area) is one of the best moves you can make. In the overwhelming majority of cases people respond super positively - maybe not right away, but positively&lt;&#x2F;p&gt;
