@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "reading-dark") { t = ""; localStorage.removeItem("theme"); }
+        else if (t === "reading-light") { t = "light"; localStorage.setItem("theme", "light"); }
+        if (t) { document.documentElement.setAttribute("data-theme", t); }
+      } catch (e) {}
+    })();
+  </script>
+
+  
+  <script>
+    (function () {
+      try {
+        var DARK = ["#cf9a8f", "#d6b27a", "#a3c293", "#8fc0bb", "#b6a3dd", "#9cb8db"];
+        var LIGHT = ["#b85c4a", "#a9762a", "#4f7d3e", "#2f867f", "#6d4fb0", "#3f6cb8"];
+        var idx = Math.floor(Math.random() * DARK.length);
+        var vars = ["--link", "--primary-highlight", "--heading", "--post-accent",
+                    "--list-marker", "--code-inline", "--blockquote-border"];
+        window.__applyAccent = function () {
+          var light = document.documentElement.getAttribute("data-theme") === "light";
+          var c = (light ? LIGHT : DARK)[idx];
+          var r = document.documentElement.style;
+          vars.forEach(function (v) { r.setProperty(v, c); });
+        };
+        window.__applyAccent();
+      } catch (e) {}
+    })();
+  </script><meta name="description" content="Introduction Let&#39;s start with a funny number &quot;83&quot;, try to guess what that means before i tell you  click to reveal  That&#39;s how many different nightly features are enabled in compiler at the commit I c…">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="kivo&#39;s blog">
+  <meta property="og:title" content="What stable Rust stands on">
+  <meta property="og:description" content="Introduction Let&#39;s start with a funny number &quot;83&quot;, try to guess what that means before i tell you  click to reveal  That&#39;s how many different nightly features are enabled in compiler at the commit I c…">
+  <meta property="og:url" content="https://kivooeo.github.io/blog/what-stable-rust-stands-on/">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="What stable Rust stands on">
+  <meta name="twitter:description" content="Introduction Let&#39;s start with a funny number &quot;83&quot;, try to guess what that means before i tell you  click to reveal  That&#39;s how many different nightly features are enabled in compiler at the commit I c…">
+
+  <link rel="alternate" type="application/atom+xml" title="kivo&#39;s blog"
+    href="https://kivooeo.github.io/atom.xml">
+
+  <title>What stable Rust stands on | kivo&#39;s blog</title>
+
+  
+  <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
+  
+  
+</head>
+
+<body>
+  <div class="content">
+    
+    
+    <header>
+      <div class="pull-right">
+        [<a href="https://kivooeo.github.io">blog</a>]
+        [<a href="https://kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https://kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https://kivooeo.github.io/about">about me</a>]
+        [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
+      </div>
+      <div class="title">
+        <a href="https://kivooeo.github.io"><strong>kivo&#39;s blog</strong></a>
+      </div>
+      <div class="subtitle">for rarely posting silly stuff</div>
+      <div class="controls">
+        <div class="ambient">
+          <span class="ctl-label">ambient:</span>
+          <button type="button" class="ambient-btn" data-ambient="">off</button>
+          <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+          <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+          <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+        </div>
+        <div class="themes">
+          <span class="ctl-label">theme:</span>
+          <button type="button" class="theme-btn" data-theme="">dark</button>
+          <button type="button" class="theme-btn" data-theme="light">light</button>
+          <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
+        </div>
+      </div>
+    </header>
+    
+
+    <main>
+      
+<article>
+  <div class="headline">
+    <h1>What stable Rust stands on</h1>
+    <div class="border"></div>
+    <time datetime=" 2026-10-29" class="date" itemprop="datePublished">
+      29 Oct 2026
+    </time>
+    
+    
+    
+    <span class="reading-time">· ~7 min read · 1380 words</span>
+    
+  </div>
+  
+  <details class="toc" open>
+    <summary>Contents</summary>
+    
+<ul>
+  
+  <li>
+    <a href="#introduction">Introduction</a>
+    
+    
+<ul>
+  
+  <li>
+    <a href="#deref-patterns">deref_patterns</a>
+    
+    
+<ul>
+  
+  <li>
+    <a href="#boxes-are-a-barrier-no-more">Boxes Are a Barrier No More</a>
+    
+  </li>
+  
+  <li>
+    <a href="#box-patterns-are-gone">box Patterns Are Gone</a>
+    
+  </li>
+  
+  <li>
+    <a href="#not-every-deref">Not Every Deref</a>
+    
+  </li>
+  
+</ul>
+
+    
+  </li>
+  
+  <li>
+    <a href="#default-field-values">default_field_values</a>
+    
+    
+<ul>
+  
+  <li>
+    <a href="#it-s-not-just-syntax-sugar-for-default">It&#39;s Not Just Syntax Sugar for Default</a>
+    
+  </li>
+  
+</ul>
+
+    
+  </li>
+  
+</ul>
+
+    
+  </li>
+  
+  <li>
+    <a href="#conclusion">Conclusion</a>
+    
+  </li>
+  
+</ul>
+
+  </details>
+  
+  <div class="articleBody">
+    <h1 id="introduction"><a class="zola-anchor" href="#introduction" aria-label="Anchor link for: introduction">Introduction</a></h1>
+<p>Let's start with a funny number "83", try to guess what that means before i tell you</p>
+<div class="spoiler">
+<button type="button" class="spoiler-toggle" aria-expanded="false" onclick="var r=this.parentNode.classList.toggle('revealed');this.setAttribute('aria-expanded',r)">click to reveal</button>
+<div class="spoiler-body"><div>
+<p>That's how many different nightly features are enabled in compiler at the commit I checked</p>
+<p>(I counted every distinct name inside feature attr in the <code>lib.rs</code> of each crate in the compiler at commit <code>f45772e</code>)</p>
+</div></div>
+</div>
+<div class="admonition admonition-important" role="note">
+<div class="admonition-title">Important</div>
+<p>I should mention that these features are not required for the compiler to function. I'm pretty sure it could work the same way without about 90% of them. The point is that they make the code simpler and more nicer to read and write.</p>
+</div>
+<p>And i don't mean some exotic internal stuff that only makes sense inside rustc (well, that too, but not today). A lot of these are just regular and very useful features, ones you can make great use of right now (on nightly)!</p>
+<div class="admonition admonition-note" role="note">
+<div class="admonition-title">Note</div>
+<p>Wait, how does a stable compiler use nightly features? rustc is written in Rust, so to build it you need another Rust compiler first. The build downloads the latest beta, called <code>stage0</code>, and uses it to build the new compiler</p>
+<p>Beta normally forbids usage of any unstable features, so the build sets a special variable called <code>RUSTC_BOOTSTRAP</code> to 1, which allows using nightly features. It's meant only for building the compiler itself (<a rel="noopener external" target="_blank" href="https://rustc-dev-guide.rust-lang.org/building/bootstrapping/what-bootstrapping-does.html">more in the rustc-dev-guide</a>), so please don't set it in your own projects: it turns off the stability guarantees, and your code can break with any update</p>
+</div>
+<p>Here are the top 5 by how many compiler crates turn them on:</p>
+<table><thead><tr><th>#</th><th>Feature</th><th>Crates</th><th>What it does</th></tr></thead><tbody>
+<tr><td>1</td><td><code>deref_patterns</code></td><td>21</td><td>match through <code>Box</code>, <code>String</code>, <code>Vec</code> and friends</td></tr>
+<tr><td>2</td><td><code>try_blocks</code></td><td>16</td><td><code>try { ... }</code> blocks, so you can use <code>?</code> without a separate function</td></tr>
+<tr><td>3</td><td><code>option_into_flat_iter</code></td><td>14</td><td>turn an <code>Option</code> of something iterable into an iterator, empty if <code>None</code></td></tr>
+<tr><td>4</td><td><code>default_field_values</code></td><td>13</td><td>default values right in the struct definition</td></tr>
+<tr><td>5</td><td><code>iter_intersperse</code>, <code>file_buffered</code>, <code>rustc_attrs</code></td><td>11</td><td>put a separator between iterator items, open or create a file already wrapped in <code>BufReader</code>/<code>BufWriter</code>, and compiler-internal attributes</td></tr>
+</tbody></table>
+<p>#1 and #4 get the full treatment today, the rest will have to wait for another post :p</p>
+<p>So... let's start!</p>
+<h2 id="deref-patterns"><a class="zola-anchor" href="#deref-patterns" aria-label="Anchor link for: deref-patterns"><code>deref_patterns</code></a></h2>
+<p>I picked this one first because it's enabled in 21 crates in the compiler, which is the highest number, and you will see why :D</p>
+<p>this feature fixes an actual pain point you've probably all run into. for example you're writing a small CLI and want to match on its arguments:</p>
+<pre><code data-lang="rust">#![feature(deref_patterns)]
+
+fn run(args: Vec&lt;String&gt;) -&gt; String {
+    match &amp;args {
+        [&quot;help&quot;] =&gt; &quot;usage: app &lt;command&gt;&quot;.to_string(),
+        [&quot;open&quot;, file] =&gt; format!(&quot;opening {file}&quot;),
+        [&quot;rm&quot;, files @ ..] =&gt; format!(&quot;removing {} files&quot;, files.len()),
+        _ =&gt; &quot;unknown command&quot;.to_string(),
+    }
+}
+</code></pre>
+<div class="admonition admonition-warning" role="note">
+<div class="admonition-title">Warning</div>
+<p>This is just to show the feature, not how you'd write a real CLI!</p>
+</div>
+<p>Looks like it should just work, right? On stable it doesn't, and it trips twice. First, the pattern is being matched against a <code>Vec</code>, but slice patterns require a slice or an array here:</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0529]</span><span class="ansi-bold">: expected an array or slice, found `Vec&lt;String&gt;`</span>
+ <span class="ansi-bold af-blue">--&gt; </span>src/main.rs:3:9
+  <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue">3</span> <span class="ansi-bold af-blue">|</span>         ["help"] =&gt; "usage: app &lt;command&gt;".to_string(),
+  <span class="ansi-bold af-blue">|</span>         <span class="ansi-bold af-red">^^^^^^^^</span> <span class="ansi-bold af-red">pattern cannot match with input type `Vec&lt;String&gt;`</span>
+  <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-cyan">help</span>: consider slicing here
+  <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue">2</span> <span class="ansi-bold af-blue">| </span>    match &amp;args<span class="af-green">[..]</span> {
+  <span class="ansi-bold af-blue">|</span>                <span class="af-green">++++</span></pre>
+<p>Now the slice pattern matches the slice, but the <code>"help"</code> pattern still doesn't match a <code>String</code> element, because Rust doesn't automatically dereference the <code>String</code> to match it as a <code>&amp;str</code>:</p>
+<pre class="term"><span class="ansi-bold af-red">error[E0308]</span><span class="ansi-bold">: mismatched types</span>
+ <span class="ansi-bold af-blue">--&gt; </span>src/main.rs:3:10
+  <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue">2</span> <span class="ansi-bold af-blue">|</span>     match &amp;args[..] {
+  <span class="ansi-bold af-blue">|</span>           <span class="ansi-bold af-blue">---------</span> <span class="ansi-bold af-blue">this expression has type `&amp;[String]`</span>
+<span class="ansi-bold af-blue">3</span> <span class="ansi-bold af-blue">|</span>         ["help"] =&gt; "usage: app &lt;command&gt;".to_string(),
+  <span class="ansi-bold af-blue">|</span>          <span class="ansi-bold af-red">^^^^^^</span> <span class="ansi-bold af-red">expected `String`, found `&amp;str`</span></pre>
+<p>So on stable you end up building a second vector just for this:</p>
+<pre><code data-lang="rust">fn run(args: Vec&lt;String&gt;) -&gt; String {
+    let args: Vec&lt;&amp;str&gt; = args.iter().map(String::as_str).collect();
+    match args.as_slice() {
+        [&quot;help&quot;] =&gt; &quot;usage: app &lt;command&gt;&quot;.to_string(),
+        // ...
+    }
+}
+</code></pre>
+<p>With deref patterns the compiler looks through both the <code>Vec</code> and the <code>String</code> for you, and the first version just works</p>
+<h3 id="boxes-are-a-barrier-no-more"><a class="zola-anchor" href="#boxes-are-a-barrier-no-more" aria-label="Anchor link for: boxes-are-a-barrier-no-more">Boxes Are a Barrier No More</a></h3>
+<p>The compiler's problem is the same, just with <code>Box</code> instead of a <code>String</code>. rustc data structures are stuffed with boxes, mostly to keep enums small. For example, every assignment in MIR is stored as <code>Assign(Box&lt;(Place, Rvalue)&gt;)</code>.</p>
+<p>With deref patterns, code that looks for "an assignment of a reference" can <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/blob/f45772eb69d6ed3cc23be40625411a75f9f32c9d/compiler/rustc_mir_transform/src/promote_consts.rs#L913">match it in one go</a>, straight through the box:</p>
+<pre><code data-lang="rust">// roughly it says: does this line of code look like `x = &amp;y`?
+// if so, give me lifetime, mutability and `y` itself
+let StatementKind::Assign((_, Rvalue::Ref(region, borrow_kind, place))) =
+    &amp;mut statement.kind
+else {
+    bug!()
+};
+</code></pre>
+<p>Without the feature that's two steps: first get the box out, then dereference it and match what's inside</p>
+<pre><code data-lang="rust">let StatementKind::Assign(assign) = &amp;mut statement.kind else { bug!() };
+let (_, Rvalue::Ref(region, borrow_kind, place)) = &amp;mut **assign else {
+    bug!()
+};
+</code></pre>
+<h3 id="box-patterns-are-gone"><a class="zola-anchor" href="#box-patterns-are-gone" aria-label="Anchor link for: box-patterns-are-gone"><code>box</code> Patterns Are Gone</a></h3>
+<p>The compiler used to do this with a different feature, <code>box_patterns</code>, which needed an explicit keyword: <code>Assign(box (lhs, ref rhs))</code>. <code>box_patterns</code> was never going to be stabilized, since <code>deref_patterns</code> does the same thing and more. But it couldn't simply be deleted either, because the compiler itself used it all over the place. So after an <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/compiler-team/issues/984">MCP</a>, in May 2026 a series of PRs, starting with <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/pull/156193">#156193</a>, went through the compiler crate by crate and replaced them</p>
+<p>Once nothing depended on it anymore, <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/pull/156749">#156749</a> removed <code>box_patterns</code> from the compiler completely. It landed in August 2026, and i was the assigned reviewer on that one, with @fmease helping out :3</p>
+<p>The only note left for the feature now says "superseded by <code>deref_patterns</code>"</p>
+<h3 id="not-every-deref"><a class="zola-anchor" href="#not-every-deref" aria-label="Anchor link for: not-every-deref">Not Every <code>Deref</code></a></h3>
+<p>It works for <code>Box</code>, <code>String</code>, <code>Vec</code>, <code>Rc</code>, <code>Arc</code>, <code>Cow</code> and a few more, but not for every type with a <code>Deref</code>. To match through a pointer, the compiler has to assume that dereferencing it gives the same thing every time, otherwise checking that a <code>match</code> covers every case would be unsound. But <code>Deref</code> is just a trait with regular code inside, and nothing stops someone from writing one that returns something different on every call. So it only works for types that implement the <code>unsafe</code> marker trait <code>DerefPure</code>. The standard library implements it for its own pointers, but your own type doesn't get it for free:</p>
+<pre><code data-lang="rust">#![feature(deref_patterns)]
+use std::ops::Deref;
+
+struct Name(String);
+
+impl Deref for Name {
+    type Target = String;
+    fn deref(&amp;self) -&gt; &amp;String { &amp;self.0 }
+}
+
+fn main() {
+    match Name(&quot;ferris&quot;.into()) {
+        &quot;ferris&quot; =&gt; println!(&quot;hi!&quot;),
+        _ =&gt; {}
+    }
+}
+</code></pre>
+<pre class="term"><span class="ansi-bold af-red">error[E0277]</span><span class="ansi-bold">: the trait bound `Name: DerefPure` is not satisfied</span>
+  <span class="ansi-bold af-blue">--&gt; </span>src/main.rs:13:9
+   <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue">13</span> <span class="ansi-bold af-blue">|</span>         "ferris" =&gt; println!("hi!"),
+   <span class="ansi-bold af-blue">|</span>         <span class="ansi-bold af-red">^^^^^^^^</span> <span class="ansi-bold af-red">unsatisfied trait bound</span>
+   <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-cyan">help</span>: the nightly-only, unstable trait `DerefPure` is not implemented for `Name`
+  <span class="ansi-bold af-blue">--&gt; </span>src/main.rs:4:1
+   <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue"> 4</span> <span class="ansi-bold af-blue">|</span> struct Name(String);
+   <span class="ansi-bold af-blue">|</span> <span class="ansi-bold af-cyan">^^^^^^^^^^^</span></pre>
+<p>Your own type can implement <code>DerefPure</code> with an <code>unsafe impl</code>, but doing so requires another nightly feature called <code>deref_pure_trait</code></p>
+<hr />
+<p>So why isn't it on stable yet? Mostly because there's no RFC for it yet, the people behind it are still writing one up. And the <code>DerefPure</code> part, letting your own types opt in, isn't planned to be stabilized at this stage at all</p>
+<p>If you want to follow along: tracking issue <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/issues/87121">#87121</a>, on nightly since 1.79</p>
+<h2 id="default-field-values"><a class="zola-anchor" href="#default-field-values" aria-label="Anchor link for: default-field-values"><code>default_field_values</code></a></h2>
+<p>The next feature is turned on in 13 compiler crates, and once you see it you'll want it everywhere</p>
+<p>Here's the parser. Not a toy parser, <a class="wavy" href="https://github.com/rust-lang/rust/tree/f45772eb69d6ed3cc23be40625411a75f9f32c9d/compiler/rustc_parse" target="_blank" rel="noopener"><span class="wavy-sr">the parser</span><span aria-hidden="true"><span style="--i:2">t</span><span style="--i:3">h</span><span style="--i:4">e</span><span style="--i:5"> </span><span style="--i:6">p</span><span style="--i:7">a</span><span style="--i:8">r</span><span style="--i:9">s</span><span style="--i:10">e</span><span style="--i:11">r</span></span></a>, the one that reads <em>your</em> code every day. Here's <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/blob/f45772eb69d6ed3cc23be40625411a75f9f32c9d/compiler/rustc_parse/src/parser/mod.rs#L187">its definition</a>:</p>
+<pre><code data-lang="rust">pub struct Parser&lt;&#39;a&gt; {
+    pub psess: &amp;&#39;a ParseSess,
+    /// The current token.
+    pub token: Token = Token::dummy(),
+    /// The spacing for the current token.
+    token_spacing: Spacing = Spacing::Alone,
+    /// The previous token.
+    pub prev_token: Token = Token::dummy(),
+    pub capture_cfg: bool = false,
+    restrictions: Restrictions = Restrictions::empty(),
+    expected_token_types: TokenTypeSet = TokenTypeSet::new(),
+    token_cursor: TokenCursor,
+    num_bump_calls: u32 = 0,
+    // ...
+    recovery: Recovery = Recovery::Allowed,
+    // ...
+}
+</code></pre>
+<p>See those <code>= something</code> after the types? Those are default values, written right in the struct definition! And here's <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/blob/f45772eb69d6ed3cc23be40625411a75f9f32c9d/compiler/rustc_parse/src/parser/mod.rs#L348">how a parser gets created</a>:</p>
+<pre><code data-lang="rust">let mut parser = Parser {
+    psess,
+    token_cursor: TokenCursor::new(stream),
+    subparser_name,
+    capture_state: CaptureState { /* ... */ },
+    ..
+};
+</code></pre>
+<p>That lonely <code>..</code> at the end means "everything i didn't mention - take it from the defaults". <code>Parser</code> has 20 fields, 16 of them have a default, so you only spell out the 4 that actually depend on the input</p>
+<p>And the parser isn't even the biggest case. <a class="wavy" href="https://github.com/rust-lang/rust/blob/f45772eb69d6ed3cc23be40625411a75f9f32c9d/compiler/rustc_resolve/src/lib.rs#L1351" target="_blank" rel="noopener"><span class="wavy-sr">the resolver</span><span aria-hidden="true"><span style="--i:2">t</span><span style="--i:3">h</span><span style="--i:4">e</span><span style="--i:5"> </span><span style="--i:6">r</span><span style="--i:7">e</span><span style="--i:8">s</span><span style="--i:9">o</span><span style="--i:10">l</span><span style="--i:11">v</span><span style="--i:12">e</span><span style="--i:13">r</span></span></a> has 96 fields, and 57 of them have a default. Imagine reading that constructor without <code>..</code></p>
+<h3 id="it-s-not-just-syntax-sugar-for-default"><a class="zola-anchor" href="#it-s-not-just-syntax-sugar-for-default" aria-label="Anchor link for: it-s-not-just-syntax-sugar-for-default">It's Not Just Syntax Sugar for <code>Default</code></a></h3>
+<p>What I like most is that required fields stay required and if you miss one, compiler will give you a small reminder:</p>
+<pre><code data-lang="rust">#![feature(default_field_values)]
+struct P&lt;&#39;a&gt; { src: &amp;&#39;a str, pos: usize = 0 }
+fn main() { let _ = P { .. }; }
+</code></pre>
+<pre class="term"><span class="ansi-bold af-red">error</span><span class="ansi-bold">: missing field `src` in initializer</span>
+ <span class="ansi-bold af-blue">--&gt; </span>src/main.rs:3:25
+  <span class="ansi-bold af-blue">|</span>
+<span class="ansi-bold af-blue">3</span> <span class="ansi-bold af-blue">|</span> fn main() { let _ = P { .. }; }
+  <span class="ansi-bold af-blue">|</span>                         <span class="ansi-bold af-red">^</span> <span class="ansi-bold af-red">fields that do not have a defaulted value must be provided explicitly</span></pre>
+<p>On stable the usual trick is <code>..Default::default()</code>, but that only works if the <em>whole</em> struct implements <code>Default</code>, and it builds a complete throwaway value just to take the remaining fields from it. <code>Parser</code> couldn't even do that: there's no sensible default for <code>psess: &amp;ParseSess</code>, so you'd be back to writing every field by hand</p>
+<p>This feature also combines with <code>#[derive(Default)]</code> pretty well</p>
+<p>The derived <code>Default</code> implementation uses the declared field defaults where present, rather than the type's usual default values:</p>
+<pre><code data-lang="rust">#![feature(default_field_values)]
+
+#[derive(Default, Debug)]
+struct Config { name: String, retries: u32 = 3, verbose: bool = true }
+
+fn main() {
+    println!(&quot;{:?}&quot;, Config::default());
+    // Config { name: &quot;&quot;, retries: 3, verbose: true }
+}
+</code></pre>
+<p>Default expressions must be usable in a <code>const</code> context. For trait-based defaults such as <code>Default::default()</code>, this also involves the compiler's <code>const_trait_impl</code> feature</p>
+<hr />
+<p>This one already has an accepted RFC and a finished implementation, so what's left is mostly paperwork: docs in the Reference, the Book and Rust By Example, and formatting rules in the style guide. There's also an ongoing discussion about whether defaults should have to be const at all, so that you could write something like <code>seed: u64 = rand()</code></p>
+<p>If you want to follow along: <a rel="noopener external" target="_blank" href="https://rust-lang.github.io/rfcs/3681-default-field-values.html">RFC 3681</a>, tracking issue <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/issues/132162">#132162</a>, on nightly since 1.85</p>
+<h1 id="conclusion"><a class="zola-anchor" href="#conclusion" aria-label="Anchor link for: conclusion">Conclusion</a></h1>
+<p>So that's what stable Rust stands on: a compiler built with 83 nightly features, two of which you've now seen up close. One lets you match straight through a <code>Box</code> or a <code>String</code>, the other lets you stop writing the same defaults over and over. None of it is compiler magic, rustc just gets to use them first :D</p>
+<p>And that's kind of the nice part. By the time a feature like this reaches stable, it has already been battle-tested on one of the biggest Rust codebases out there. And sometimes the test goes the other way: <code>box_patterns</code> lived in the compiler for years and still didn't make it, because something better came along. Either way, what you eventually get on stable has already had a lot of its rough edges filed off</p>
+<p>There are plenty of interesting things in the compiler, so I'll bring some of them next time!</p>
+
+  </div>
+  
+  <div class="post-end">
+    <img class="post-end-cat" src="https://kivooeo.github.io/cat.gif" alt="A cat" width="140" height="140">
+    <p><code>you've reached the end &lt;3</code></p>
+  </div>
+  
+</article>
+
+<button id="to-contents" class="to-contents" type="button" aria-label="Back to contents" title="Back to contents" hidden>↑ contents</button>
+
+
+    </main>
+  </div>
+
+  <footer>
+    
+    <p> <a href="https://kivooeo.github.io/">Kivooeo</a> &mdash; <a
+        href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
+        href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
+      theme</p>
+    
+  </footer>
+
+  
+
+  <div class="dock-left-stack">
+    <div class="dock-panel on-scroll music-dock">
+      <div class="ambient">
+        <span class="ctl-label">music:</span>
+        <button type="button" class="ambient-btn" data-ambient="">off</button>
+        <button type="button" class="ambient-btn" data-ambient="rain" data-src="https://kivooeo.github.io/audio/rain.mp3">rain</button>
+        <button type="button" class="ambient-btn" data-ambient="lofi" data-playlist="https://kivooeo.github.io/audio/lofi/playlist.json">lofi</button>
+        <button type="button" class="ambient-btn" data-ambient="forest" data-src="https://kivooeo.github.io/audio/forest.mp3">forest</button>
+      </div>
+    </div>
+    <div class="dock-panel player">
+      <div class="now-playing"><span class="ctl-label">now playing:</span> <span id="np-title"></span></div>
+      <div class="volume">
+        <span class="ctl-label">volume:</span>
+        <input type="range" class="ambient-volume" id="ambient-volume" min="0" max="1" step="0.01" value="0.4" aria-label="Ambient volume" title="Volume">
+      </div>
+    </div>
+  </div>
+  <div class="dock-panel on-scroll dock-right">
+    <div class="themes">
+      <span class="ctl-label">theme:</span>
+      <button type="button" class="theme-btn" data-theme="">dark</button>
+      <button type="button" class="theme-btn" data-theme="light">light</button>
+      <button type="button" class="theme-btn" data-theme="gruvbox">gruvbox</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var panels = document.querySelectorAll(".on-scroll");
+      var footer = document.querySelector("footer");
+      var player = document.querySelector(".player");
+      var root = document.documentElement;
+      function update() {
+        var on = window.scrollY > 400;
+        panels.forEach(function (d) { d.classList.toggle("visible", on); });
+        if (footer) {
+          var top = footer.getBoundingClientRect().top;
+          var lift = Math.max(0, window.innerHeight - top);
+          root.style.setProperty("--dock-lift", lift + "px");
+        }
+        var po = (player && player.classList.contains("playing")) ? player.offsetHeight + 8 : 0;
+        root.style.setProperty("--player-offset", po + "px");
+      }
+      window.addEventListener("scroll", update, { passive: true });
+      window.addEventListener("resize", update);
+      window.__updateDocks = update; // let the router / audio player recompute
+      update();
+    })();
+  </script>
+
+  <script src="https://kivooeo.github.io/js/theme.js"></script>
+  <script src="https://kivooeo.github.io/js/ambient.js"></script>
+  <script src="https://kivooeo.github.io/js/highlight.min.js"></script>
+  <script>
+    if (window.hljs) { hljs.highlightAll(); }
+  </script>
+  <script src="https://kivooeo.github.io/js/copycode.js"></script>
+  <script src="https://kivooeo.github.io/js/anchors.js"></script>
+  <script src="https://kivooeo.github.io/js/backtotop.js"></script>
+  <script src="https://kivooeo.github.io/js/mentions.js"></script>
+  <script src="https://kivooeo.github.io/js/wall.js"></script>
+  <script src="https://kivooeo.github.io/js/nav.js"></script>
+</body>
+
+
+</html>
