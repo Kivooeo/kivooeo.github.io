@@ -35,22 +35,22 @@
         window.__applyAccent();
       } catch (e) {}
     })();
-  </script><meta name="description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#x27;ll also be mentoring a Google Summer of Code project this year, and it&#x27;s test-suite related - so if you&#x27;re interested,…">
+  </script><meta name="description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#39;ll also be mentoring a Google Summer of Code project this year, and it&#39;s test-suite related - so if you&#39;re interested,…">
 
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="kivo&#x27;s blog">
+  <meta property="og:site_name" content="kivo&#39;s blog">
   <meta property="og:title" content="Part 1: Tackling an `E-needs-test` issue">
-  <meta property="og:description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#x27;ll also be mentoring a Google Summer of Code project this year, and it&#x27;s test-suite related - so if you&#x27;re interested,…">
+  <meta property="og:description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#39;ll also be mentoring a Google Summer of Code project this year, and it&#39;s test-suite related - so if you&#39;re interested,…">
   <meta property="og:url" content="https://kivooeo.github.io/blog/e-needs-test/">
 
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Part 1: Tackling an `E-needs-test` issue">
-  <meta name="twitter:description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#x27;ll also be mentoring a Google Summer of Code project this year, and it&#x27;s test-suite related - so if you&#x27;re interested,…">
+  <meta name="twitter:description" content="In this part, I want to cover how I would tackle an issue labeled E-needs-test. I&#39;ll also be mentoring a Google Summer of Code project this year, and it&#39;s test-suite related - so if you&#39;re interested,…">
 
-  <link rel="alternate" type="application/atom+xml" title="kivo&#x27;s blog"
+  <link rel="alternate" type="application/atom+xml" title="kivo&#39;s blog"
     href="https://kivooeo.github.io/atom.xml">
 
-  <title>Part 1: Tackling an `E-needs-test` issue | kivo&#x27;s blog</title>
+  <title>Part 1: Tackling an `E-needs-test` issue | kivo&#39;s blog</title>
 
   
   <link rel="stylesheet" href="https://kivooeo.github.io/theme.css">
@@ -64,14 +64,14 @@
     
     <header>
       <div class="pull-right">
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io">blog</a>]
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/sponsor">sponsor</a>]
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/atom.xml">rss</a>]
-        [<a href="https:&#x2F;&#x2F;kivooeo.github.io/about">about me</a>]
+        [<a href="https://kivooeo.github.io">blog</a>]
+        [<a href="https://kivooeo.github.io/sponsor">sponsor</a>]
+        [<a href="https://kivooeo.github.io/atom.xml">rss</a>]
+        [<a href="https://kivooeo.github.io/about">about me</a>]
         [<a class="rainbow" href="https://kivooeo.github.io/resume.pdf" target="_blank" rel="noopener">resume</a>]
       </div>
       <div class="title">
-        <a href="https:&#x2F;&#x2F;kivooeo.github.io"><strong>kivo&#x27;s blog</strong></a>
+        <a href="https://kivooeo.github.io"><strong>kivo&#39;s blog</strong></a>
       </div>
       <div class="subtitle">for rarely posting silly stuff</div>
       <div class="controls">
@@ -124,7 +124,7 @@
   </li>
   
   <li>
-    <a href="#tests-ui-resolve-name-resolution">tests&#x2F;ui&#x2F;resolve&#x2F;: Name resolution</a>
+    <a href="#tests-ui-resolve-name-resolution">tests/ui/resolve/: Name resolution</a>
     
   </li>
   
@@ -149,46 +149,43 @@
   
   <div class="articleBody">
     <p>In this part, I want to cover how I would tackle an issue labeled <code>E-needs-test</code>.</p>
-<p>I'll also be mentoring a Google Summer of Code project this year, and it's test-suite related - so if you're interested, you can read more about it <a href="https://github.com/rust-lang/google-summer-of-code?tab=readme-ov-file#reorganisation-of-testsuiissues">here</a></p>
+<p>I'll also be mentoring a Google Summer of Code project this year, and it's test-suite related - so if you're interested, you can read more about it <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/google-summer-of-code?tab=readme-ov-file#reorganisation-of-testsuiissues">here</a></p>
 <p>Given that this isn't a very time-consuming task, I expect this post won't be very long. I'll document everything as I go - you'll see my actual thought process and decisions in real-time</p>
 <h2 id="selecting-and-studying-an-issue"><a class="zola-anchor" href="#selecting-and-studying-an-issue" aria-label="Anchor link for: selecting-and-studying-an-issue">Selecting and Studying an Issue</a></h2>
-<p>Let's head over to <a href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-needs-test">GitHub</a> to search for issues. Looking at the list, I'll pick the first available issue. I don't think it will make a big difference, and to be honest, picking one at random for content isn't a bad idea either</p>
-<p>So I've selected an <a href="https://github.com/rust-lang/rust/issues/147958">issue</a>, now let's see what's going on. According to the issue description, this code used to cause the compiler to panic when trying to compile it. However, according to the last comment, the problem was fixed in one of the pull requests, even though the issue itself is still open. Therefore, we want to add a test using this code example that used to panic, to lock in the new correct behavior and ensure that it now works as expected</p>
+<p>Let's head over to <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/issues?q=is%3Aissue%20state%3Aopen%20no%3Aassignee%20label%3AE-needs-test">GitHub</a> to search for issues. Looking at the list, I'll pick the first available issue. I don't think it will make a big difference, and to be honest, picking one at random for content isn't a bad idea either</p>
+<p>So I've selected an <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/issues/147958">issue</a>, now let's see what's going on. According to the issue description, this code used to cause the compiler to panic when trying to compile it. However, according to the last comment, the problem was fixed in one of the pull requests, even though the issue itself is still open. Therefore, we want to add a test using this code example that used to panic, to lock in the new correct behavior and ensure that it now works as expected</p>
 <h2 id="tackling-the-problem"><a class="zola-anchor" href="#tackling-the-problem" aria-label="Anchor link for: tackling-the-problem">Tackling the Problem</a></h2>
 <p>So, now that we've looked into the issue's context, let's start taking action. Let's open a code editor, and navigate to forked repository, and create a new branch for pull request. I'm just going to do what I normally do (to be honest, I still don't feel very confident using Git, so I might do something a bit odd or not the usual way):</p>
 <div class="admonition admonition-tip" role="note">
 <div class="admonition-title">Tip</div>
 <p>If you're also not confident with Git, that's totally fine - the commands I show here work reliably, and the worst case is that reviewers will help you fix any Git issues</p>
-
 </div>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ git checkout -b add-regression-test-1
+<pre><code data-lang="shell">$ git checkout -b add-regression-test-1
 </code></pre>
 <p>And also, to ensure I've a clean and up-to-date branch, I run:</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ git fetch upstream
-$ git reset --hard upstream&#x2F;main
+<pre><code data-lang="shell">$ git fetch upstream
+$ git reset --hard upstream/main
 </code></pre>
 <div class="admonition admonition-warning" role="note">
 <div class="admonition-title">Fair warning</div>
 <p><code>reset --hard</code> will discard all your uncommitted local changes. Make sure you don't have any unsaved work before running this command. I always verify this first, which is why I use it safely</p>
-
 </div>
 <div class="admonition admonition-note" role="note">
 <div class="admonition-title">Note</div>
 <p>This fetches the latest changes from the main Rust repository and resets branch to match it exactly</p>
-
 </div>
 <p>Now let's figure out where to add a new test. Since it'll be a UI test, I should find the appropriate subdirectory to place it. Since the issue was titled "resolve: <code>no entry found for key</code>", it's clear this is a name resolution problem, which means the test should go in the resolve directory</p>
 <p>Also a very small tip on how can you determine the directory, because in your case it might not be specified in the issue's title, in that case feel free to look at labels on that issue, it's very likely do have labels like <code>A-resolve</code> or <code>A-macros</code> like in my case, and you can search for this words in <code>tests/ui/README.md</code>, also, try to use your own intuition to understand what is tested in that test (sometimes it's not very obvious, I completely relate that part)</p>
 <p>Let's open <code>tests/ui/README.md</code> and search for "resolve", to see what's available:</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ code tests&#x2F;ui&#x2F;README.md
+<pre><code data-lang="shell">$ code tests/ui/README.md
 </code></pre>
 <p>I use Ctrl+F to search for 'resolve'. Aha, there it is: there's a directory with the exact name I need:</p>
 <blockquote>
 <h2 id="tests-ui-resolve-name-resolution"><a class="zola-anchor" href="#tests-ui-resolve-name-resolution" aria-label="Anchor link for: tests-ui-resolve-name-resolution"><code>tests/ui/resolve/</code>: Name resolution</a></h2>
-<p>See <a href="https://rustc-dev-guide.rust-lang.org/name-resolution.html">Name resolution | rustc-dev-guide</a>.</p>
+<p>See <a rel="noopener external" target="_blank" href="https://rustc-dev-guide.rust-lang.org/name-resolution.html">Name resolution | rustc-dev-guide</a>.</p>
 </blockquote>
 <p>That's exactly what I need! Now let's think of a name for the test. It should be short and reflect what's being tested. To help with this, let's look at the code for the future test, which is taken from the example:</p>
-<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">#![feature(decl_macro)]
+<pre><code data-lang="rust">#![feature(decl_macro)]
 
 macro_rules! exported {
     () =&gt; {
@@ -207,16 +204,16 @@ mod inner1 {
 <p>This is some really convoluted nested macro code! Honestly, I have no clue what could have gone wrong here. I tried reading yaahc's comments on the issue, but they didn't give me much insight, and I must admit I'm hearing about the <code>decl_macro</code> feature almost for the first time</p>
 <p>I honestly don't fully understand what this code does, but for adding a regression test, I don't need to - the bug was already fixed, I just need to make sure this code compiles now</p>
 <p>I'll make a relatively generic test name and adding the issue number at the end. Something like <code>exported-macro-in-mod-147958</code> - honestly, I just wrote down what I see in the test itself</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ touch tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
-$ code tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
+<pre><code data-lang="shell">$ touch tests/ui/resolve/exported-macro-in-mod-147958.rs
+$ code tests/ui/resolve/exported-macro-in-mod-147958.rs
 </code></pre>
 <p>So I just paste the code above into this file. The only difference is that I'll add a directive at the very top of the test:</p>
-<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F;@ check-pass
+<pre><code data-lang="rust">//@ check-pass
 </code></pre>
 <p>In UI tests, if you don't specify a directive like <code>//@ check-pass</code>, the harness assumes the test should produce errors and compares against a .stderr file</p>
-<p>I won't go into detail about test directives here, because there's already good material on this topic. My focus is a bit different, but I highly recommend checking out the <a href="https://rustc-dev-guide.rust-lang.org/tests/directives.html">Rustc dev guide on directives</a></p>
+<p>I won't go into detail about test directives here, because there's already good material on this topic. My focus is a bit different, but I highly recommend checking out the <a rel="noopener external" target="_blank" href="https://rustc-dev-guide.rust-lang.org/tests/directives.html">Rustc dev guide on directives</a></p>
 <p>Okay, now that the test is ready, let's try running it:</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ .&#x2F;x test tests&#x2F;ui&#x2F;resolve&#x2F;exported-macro-in-mod-147958.rs
+<pre><code data-lang="shell">$ ./x test tests/ui/resolve/exported-macro-in-mod-147958.rs
 </code></pre>
 <p>This will start building the compiler and any necessary tools. By the way, since I expect no errors to occur, a <code>.stderr</code> file shouldn't be generated, so I didn't use the <code>--bless</code> flag (the one that generates the error output file)</p>
 <p>The test didn't pass...</p>
@@ -244,33 +241,31 @@ For more information about this error, try `rustc --explain E0601`.</pre>
 <div class="admonition admonition-note" role="note">
 <div class="admonition-title">Note</div>
 <p>tidy checks formatting, whitespace, file placement, and other repository conventions</p>
-
 </div>
 <p>Now I can prepare the pull request. To do that I ran the following commands:</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&gt; git add .
-user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&gt; git commit -m &quot;add regression test&quot;
-user@machine ~&#x2F;r&#x2F;rust (add-regression-test-1)&gt; git push --force-with-lease origin add-regression-test-1 
+<pre><code data-lang="shell">user@machine ~/r/rust (add-regression-test-1)&gt; git add .
+user@machine ~/r/rust (add-regression-test-1)&gt; git commit -m &quot;add regression test&quot;
+user@machine ~/r/rust (add-regression-test-1)&gt; git push --force-with-lease origin add-regression-test-1 
 </code></pre>
 <div class="admonition admonition-note" role="note">
 <div class="admonition-title">Note</div>
 <p><code>--force-with-lease</code> isn't needed for a new branch, but I use it out of habit</p>
-
 </div>
 <p>I think everything is ready, so let's go to GitHub. I'll open my fork, switch to the branch I created for this pull request, and click the big "Contribute -&gt; Open pull request" button</p>
 <p>I'll keep the description minimal, since there is not much to tell about this PR. I titled it "add regression test for 147958" and I just left the description as "fixes #147958", so that the issue will be closed after merging the pull request</p>
 <p>Since I don't know who should do the review, I left it like that. Usually, you can write something like <code>r? team</code> (e.g. <code>r? compiler</code>) or a specific member like <code>r? Kivooeo</code>. If you don't specify anyone, rustbot will pick the most appropriate free reviewer in rotation</p>
 <hr />
-<p>And that's it. Pull request was created <a href="https://github.com/rust-lang/rust/pull/152732">here</a>. Rustbot assigned TaKO8Ki as the reviewer, so now I wait for review. I'm not 100% sure about this test since I'm not familiar with this feature, but I fully expect it to be approved. You can also check the reviewer's GitHub profile to see their recent activity - I often do this myself, although I don't really have any specific expectations. Reviews can take up to two weeks before you can re-request a review if needed</p>
+<p>And that's it. Pull request was created <a rel="noopener external" target="_blank" href="https://github.com/rust-lang/rust/pull/152732">here</a>. Rustbot assigned TaKO8Ki as the reviewer, so now I wait for review. I'm not 100% sure about this test since I'm not familiar with this feature, but I fully expect it to be approved. You can also check the reviewer's GitHub profile to see their recent activity - I often do this myself, although I don't really have any specific expectations. Reviews can take up to two weeks before you can re-request a review if needed</p>
 <p>Given the size and simplicity of this PR, I'm expecting a pretty quick approval. The most likely outcome is that another contributor will approve it or suggest corrections</p>
 <h2 id="an-oversight"><a class="zola-anchor" href="#an-oversight" aria-label="Anchor link for: an-oversight">An Oversight</a></h2>
 <p>About 30 minutes after I created the pull request, I remembered that I forgot to add a most important comment</p>
-<pre><code>&#x2F;&#x2F;! Regression test for &lt;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&gt;
+<pre><code>//! Regression test for &lt;https://github.com/rust-lang/rust/issues/147958&gt;
 </code></pre>
 <p>On top of the test, so in future it would be easier to navigate for original issue, let's quickly fix it!</p>
 <p>So all I do is just add this comment, final test looks this</p>
-<pre data-lang="rust" class="language-rust "><code class="language-rust" data-lang="rust">&#x2F;&#x2F;! Regression test for &lt;https:&#x2F;&#x2F;github.com&#x2F;rust-lang&#x2F;rust&#x2F;issues&#x2F;147958&gt;
+<pre><code data-lang="rust">//! Regression test for &lt;https://github.com/rust-lang/rust/issues/147958&gt;
 
-&#x2F;&#x2F;@ check-pass
+//@ check-pass
 
 #![feature(decl_macro)]
 
@@ -291,11 +286,11 @@ mod inner1 {
 fn main() {}
 </code></pre>
 <p>Here I have an empty <code>main</code> function, and a comment with link to the issue, btw, worth noting that while many regression tests don't include this comment (and that's totally okay), I personally find it really helpful to have the direct link. I also pretty often see comment like:</p>
-<pre><code>&#x2F;&#x2F;! Test for #31233
+<pre><code>//! Test for #31233
 </code></pre>
 <p>Which makes it pretty hard to follow an actual issue, ctrl + click by link is way faster and easier</p>
 <p>Next what I do is some <code>git</code> magic, at least this is how I see this</p>
-<pre data-lang="shell" class="language-shell "><code class="language-shell" data-lang="shell">$ git add .
+<pre><code data-lang="shell">$ git add .
 $ git commit --amend --no-edit
 $ git push --force-with-lease origin add-regression-test-1
 </code></pre>
@@ -338,7 +333,7 @@ $ git push --force-with-lease origin add-regression-test-1
 <li>You learn the PR workflow without much pressure</li>
 </ul>
 <hr />
-<p>It is important to add at the end that, depending on the issue itself, the process may differ slightly, for example, a different directory for the test or the test will expect an error output (i.e., the creation of a <code>.stderr</code> file), so you may have questions. If you want to try adding a test or solving an issue labeled <code>E-needs-test</code>, but are stuck or feel like you don't know something, you can <a href="https://rust-lang.zulipchat.com/#narrow/dm/675515-Kivooeo">write to me in private messages</a> on Zulip and/or assign me as a reviewer using <code>r? Kivooeo</code> in the description. Thank you to everyone who works on Rust and everyone who will work on it in the future!</p>
+<p>It is important to add at the end that, depending on the issue itself, the process may differ slightly, for example, a different directory for the test or the test will expect an error output (i.e., the creation of a <code>.stderr</code> file), so you may have questions. If you want to try adding a test or solving an issue labeled <code>E-needs-test</code>, but are stuck or feel like you don't know something, you can <a rel="noopener external" target="_blank" href="https://rust-lang.zulipchat.com/#narrow/dm/675515-Kivooeo">write to me in private messages</a> on Zulip and/or assign me as a reviewer using <code>r? Kivooeo</code> in the description. Thank you to everyone who works on Rust and everyone who will work on it in the future!</p>
 <p>In the next part I'm planning to take some A-diagnostics issue, to actually fix some error messages, yay!</p>
 <hr />
 <p>On a side note, if you want to support the release of future blog posts, my work on the compiler, mentoring newcomers and GSoC students, I'd be very grateful if you could take a look at my <a href="/sponsor">sponsor page</a> &lt;3</p>
@@ -360,7 +355,7 @@ $ git push --force-with-lease origin add-regression-test-1
 
   <footer>
     
-    <p> <a href="https:&#x2F;&#x2F;kivooeo.github.io&#x2F;">Kivooeo</a> &mdash; <a
+    <p> <a href="https://kivooeo.github.io/">Kivooeo</a> &mdash; <a
         href="mailto:Kivooeo123@gmail.com">Kivooeo123@gmail.com</a> | Powered by <a
         href="https://www.getzola.org/">Zola</a> and based on the <a href="https://git.sr.ht/~savoy/tilde">tilde</a>
       theme</p>

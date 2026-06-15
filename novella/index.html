@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Восход</title>
+  <meta name="description" content="Визуальная новелла">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Pixelify+Sans:wght@400..700&display=swap">
+  <link rel="stylesheet" href="https://kivooeo.github.io/novella.css">
+</head>
+
+<body>
+  <div id="nv" class="nv"
+       data-key="part1"
+       data-story="https://kivooeo.github.io/novella/part1.txt">
+    <div class="nv-bg"></div>
+    <div class="nv-scan"></div>
+    <div class="nv-vignette"></div>
+
+    <header id="nv-hud" class="nv-hud">
+      <button id="nv-toc-btn" class="nv-cog" type="button" aria-label="Главы">☰</button>
+      <div class="nv-prog"><span id="nv-prog-fill"></span></div>
+      <div class="nv-chapter" id="nv-chapter"></div>
+      <button id="nv-cog" class="nv-cog" type="button" aria-label="Настройки">⚙</button>
+    </header>
+
+    <nav id="nv-toc" class="nv-toc" hidden>
+      <div class="nv-toc-head">Главы</div>
+      <ul id="nv-toc-list" class="nv-toc-list"></ul>
+    </nav>
+
+    <div id="nv-settings" class="nv-settings" hidden>
+      <div class="nv-set-title">настройки</div>
+      <label class="nv-set-row">
+        <span>скорость текста</span>
+        <input id="nv-speed" type="range" min="0" max="100" step="1" value="63">
+      </label>
+      <div class="nv-set-hint"><span>медленнее</span><span>быстрее</span></div>
+      <label class="nv-set-row">
+        <span>размер текста</span>
+        <input id="nv-size" type="range" min="0" max="100" step="1" value="40">
+      </label>
+      <div class="nv-set-hint"><span>меньше</span><span>больше</span></div>
+      <label class="nv-set-row">
+        <span>пиксельный шрифт</span>
+        <select id="nv-font" class="nv-select">
+          <option value="dot">DotGothic16 — 16-битный</option>
+          <option value="pixelify">Pixelify Sans — округлый</option>
+          <option value="handjet">Handjet — блочный</option>
+        </select>
+      </label>
+      <label class="nv-set-check">
+        <input id="nv-instant" type="checkbox"><span>без анимации печати</span>
+      </label>
+      <label class="nv-set-check">
+        <input id="nv-pixel" type="checkbox"><span>проза пиксельным шрифтом</span>
+      </label>
+    </div>
+
+    <main id="nv-read" class="nv-read"></main>
+
+    <div id="nv-next" class="nv-next" hidden>▼</div>
+  </div>
+
+  <script src="https://kivooeo.github.io/js/novella.js"></script>
+</body>
+
+</html>
